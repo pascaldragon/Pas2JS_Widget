@@ -68,6 +68,7 @@ type
     property HandleClass: string read FHandleClass write FHandleClass;
     property HandleId: string read FHandleId write FHandleId;
     property KeyPreview;
+    property PopupMenu;
     property ShowHint;
     property Visible;
     property OnActivate;
@@ -110,6 +111,7 @@ type
     property ParentColor;
     property ParentFont;
     property ParentShowHint;
+    property PopupMenu;
     property ShowHint;
     property TabOrder;
     property TabStop;
@@ -159,6 +161,7 @@ type
     property ParentColor;
     property ParentFont;
     property ParentShowHint;
+    property PopupMenu;
     property ShowHint;
     property TabOrder;
     property TabStop;
@@ -204,6 +207,7 @@ type
     property ParentColor;
     property ParentFont;
     property ParentShowHint;
+    property PopupMenu;
     property ShowHint;
     property TabOrder;
     property TabStop;
@@ -248,6 +252,7 @@ type
     property ParentFont;
     property ParentShowHint;
     property PasswordChar;
+    property PopupMenu;
     property ReadOnly;
     property ShowHint;
     property TabStop;
@@ -295,6 +300,7 @@ type
     property ParentColor;
     property ParentFont;
     property ParentShowHint;
+    property PopupMenu;
     property ReadOnly;
     property ShowHint;
     property TabOrder;
@@ -342,6 +348,7 @@ type
     property ModalResult;
     property ParentFont;
     property ParentShowHint;
+    property PopupMenu;
     property ShowHint;
     property TabOrder;
     property TabStop;
@@ -384,6 +391,7 @@ type
     property ParentColor;
     property ParentFont;
     property ParentShowHint;
+    property PopupMenu;
     property ShowHint;
     property State;
     property TabOrder;
@@ -428,6 +436,7 @@ type
     property ParentColor;
     property ParentFont;
     property ParentShowHint;
+    property PopupMenu;
     property ShowHint;
     property Transparent;
     property Visible;
@@ -461,6 +470,7 @@ type
     property HandleId: string read FHandleId write FHandleId;
     property ParentShowHint;
     property Proportional;
+    property PopupMenu;
     property ShowHint;
     property Stretch;
     property StretchOutEnabled;
@@ -508,12 +518,12 @@ type
     property ParentColor;
     property ParentFont;
     property ParentShowHint;
+    property PopupMenu;
     property ShowHint;
     property TabOrder;
     property TabStop;
     property Visible;
     property Wordwrap;
-    property PopupMenu;
     property OnClick;
     property OnDblClick;
     property OnEnter;
@@ -546,6 +556,7 @@ type
     FHandleClass: string;
     FHandleId: string;
   published
+    property PopupMenu;
     property HandleClass: string read FHandleClass write FHandleClass;
     property HandleId: string read FHandleId write FHandleId;
   end;
@@ -577,6 +588,7 @@ type
     property ParentFont;
     property ParentShowHint;
     property PasswordChar;
+    property PopupMenu;
     property ReadOnly;
     property ShowHint;
     property TabStop;
@@ -630,6 +642,7 @@ type
     property ParentFont;
     property ParentShowHint;
     property PasswordChar;
+    property PopupMenu;
     property ReadOnly;
     property ShowHint;
     property TabStop;
@@ -681,6 +694,7 @@ type
     property ParentFont;
     property ParentShowHint;
     property PasswordChar;
+    property PopupMenu;
     property ReadOnly;
     property ShowHint;
     property TabStop;
@@ -732,6 +746,7 @@ type
     property ParentFont;
     property ParentShowHint;
     property PasswordChar;
+    property PopupMenu;
     property ReadOnly;
     property ShowHint;
     property TabStop;
@@ -778,6 +793,7 @@ type
     //property ModalResult;
     property ParentFont;
     property ParentShowHint;
+    property PopupMenu;
     property ShowHint;
     property TabOrder;
     property TabStop;
@@ -818,6 +834,7 @@ type
     property HandleId: string read FHandleId write FHandleId;
     property ParentFont;
     property ParentShowHint;
+    property PopupMenu;
     property ShowHint;
     property SortOrder;
     property ShowHeader;
@@ -856,6 +873,7 @@ type
     property HandleId: string read FHandleId write FHandleId;
     property ParentFont;
     property ParentShowHint;
+    property PopupMenu;
     property RecordsPerPage;
     property ShowHint;
     property TabOrder;
@@ -884,6 +902,7 @@ type
     property DefaultRowHeight;
     property FixedCols;
     property FixedRows;
+    property PopupMenu;
     property RowCount;
   end;
 

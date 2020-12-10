@@ -394,6 +394,7 @@ type
     procedure KeyDown(var Key: NativeInt; Shift: TShiftState); virtual;
     procedure KeyPress(var Key: char); virtual;
     procedure KeyUp(var Key: NativeInt; Shift: TShiftState); virtual;
+    procedure Click; override;
   protected
     function HandleEnter(AEvent: TJSFocusEvent): boolean; virtual;
     function HandleExit(AEvent: TJSEvent): boolean; virtual;
@@ -2385,6 +2386,15 @@ begin
   begin
     FOnKeyUp(Self, Key, Shift);
   end;
+end;
+
+procedure TWinControl.Click;
+begin
+  inherited Click;
+  if Assigned(PopupMenu) then
+    Writeln('Click if Popup Exist');
+//    mo
+
 end;
 
 function TWinControl.HandleEnter(AEvent: TJSFocusEvent): boolean;
