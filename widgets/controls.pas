@@ -218,6 +218,7 @@ type
     FParentColor: boolean;
     FParentFont: boolean;
     FParentShowHint: boolean;
+    FPopupMenu: TCustomPopupMenu;
     FShowHint: boolean;
     FTabOrder: NativeInt;
     FTabStop: boolean;
@@ -260,6 +261,7 @@ type
     procedure SetParentColor(AValue: boolean);
     procedure SetParentFont(AValue: boolean);
     procedure SetParentShowHint(AValue: boolean);
+    procedure SetPopupMenu(AValue: TCustomPopupMenu);
     procedure SetShowHint(AValue: boolean);
     procedure SetTabOrder(AValue: NativeInt);
     procedure SetTabStop(AValue: boolean);
@@ -295,6 +297,7 @@ type
     property OnScroll: TNotifyEvent read FOnScroll write FOnScroll;
   protected
     function HandleClick(AEvent: TJSMouseEvent): boolean; virtual;
+    function HandleContextMenu(AEvent: TJSWheelEvent): boolean; virtual;
     function HandleDblClick(AEvent: TJSMouseEvent): boolean; virtual;
     function HandleMouseDown(AEvent: TJSMouseEvent): boolean; virtual;
     function HandleMouseEnter(AEvent: TJSMouseEvent): boolean; virtual;
@@ -361,6 +364,7 @@ type
     property ParentColor: boolean read FParentColor write SetParentColor;
     property ParentFont: boolean read FParentFont write SetParentFont;
     property ParentShowHint: boolean read FParentShowHint write SetParentShowHint;
+    property PopupMenu: TCustomPopupMenu read FPopupMenu write SetPopupMenu;
     property ShowHint: boolean read FShowHint write SetShowHint;
     property Visible: boolean read FVisible write SetVisible;
     property OnClick: TNotifyEvent read FOnClick write FOnClick;
@@ -383,11 +387,9 @@ type
     FOnKeyDown: TKeyEvent;
     FOnKeyPress: TKeyPressEvent;
     FOnKeyUp: TKeyEvent;
-    FPopupMenu: TCustomPopupMenu;
     function GetControl(const AIndex: NativeInt): TControl;
     function GetControlCount: NativeInt;
     function GetControlIndex(const AControl: TControl): NativeInt;
-    procedure SetPopupMenu(AValue: TCustomPopupMenu);
   protected
     procedure DoEnter; virtual;
     procedure DoExit; virtual;
@@ -414,7 +416,6 @@ type
     property ControlCount: NativeInt read GetControlCount;
     property ControlIndex[const AControl: TControl]: NativeInt read GetControlIndex;
     property Controls[const AIndex: NativeInt]: TControl read GetControl; default;
-    property PopupMenu: TCustomPopupMenu read FPopupMenu write SetPopupMenu;
 
   public
     property OnEnter: TNotifyEvent read FOnEnter write FOnEnter;
@@ -437,6 +438,7 @@ type
     constructor Create(AOwner: TComponent); override;
     procedure Popup; overload;
     procedure Popup(Ax, Ay: Integer); overload;
+    procedure Hide;
   end;
 
 
@@ -935,9 +937,14 @@ procedure TCustomPopupMenu.Popup(Ax, Ay: Integer);
 begin
   Fx := Ax;
   Fy := Ay;
-  SetBounds(ax,ay, 200,200);
-  Visible:=true;
+  SetBounds(ax, ay, 200, 200);
+  Visible := True;
   Changed;
+end;
+
+procedure TCustomPopupMenu.Hide;
+begin
+  Visible := False;
 end;
 
 { TControlCanvas }
@@ -1328,6 +1335,12 @@ begin
   end;
 end;
 
+procedure TControl.SetPopupMenu(AValue: TCustomPopupMenu);
+begin
+  if FPopupMenu=AValue then Exit;
+  FPopupMenu:=AValue;
+end;
+
 procedure TControl.SetShowHint(AValue: boolean);
 begin
   if (FShowHint <> AValue) then
@@ -1385,6 +1398,7 @@ end;
 
 procedure TControl.Click;
 begin
+  Writeln('Click = ', Name);
   if (Assigned(FOnClick)) then
   begin
     FOnClick(Self);
@@ -1467,7 +1481,18 @@ function TControl.HandleClick(AEvent: TJSMouseEvent): boolean;
 begin
   AEvent.StopPropagation;
   Click();
-  Result := True;
+  Result := true;
+end;
+
+function TControl.HandleContextMenu(AEvent: TJSWheelEvent): boolean;
+begin
+  if Assigned(PopupMenu) then
+  begin
+    AEvent.preventDefault;
+    writeln('Context');
+    PopupMenu.Popup(Round(AEvent.clientX), Round(AEvent.clientY));
+  end;
+  Result := true;
 end;
 
 function TControl.HandleDblClick(AEvent: TJSMouseEvent): boolean;
@@ -1491,7 +1516,8 @@ begin
   Y := Trunc(AEvent.ClientY - VOffSets.Top);
   AEvent.StopPropagation;
   MouseDown(VButton, VShift, X, Y);
-  Result := True;
+  Result := true;
+
 end;
 
 function TControl.HandleMouseEnter(AEvent: TJSMouseEvent): boolean;
@@ -1742,6 +1768,7 @@ begin
     AddEventListener('scroll', @HandleScroll);
     AddEventListener('resize', @HandleResize);
     AddEventListener('wheel', @HandleMouseWheel);
+    AddEventListener('contextmenu', @HandleContextMenu);
   end;
 end;
 
@@ -2340,12 +2367,6 @@ end;
 function TWinControl.GetControlIndex(const AControl: TControl): NativeInt;
 begin
   Result := FControls.IndexOf(AControl);
-end;
-
-procedure TWinControl.SetPopupMenu(AValue: TCustomPopupMenu);
-begin
-  if FPopupMenu=AValue then Exit;
-  FPopupMenu:=AValue;
 end;
 
 procedure TWinControl.DoEnter;
