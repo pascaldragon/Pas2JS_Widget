@@ -244,6 +244,7 @@ type
     property KeyPreview;
     property ShowHint;
     property Visible;
+    property PopupMenu;
     property OnActivate;
     property OnClick;
     property OnClose;

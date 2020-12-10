@@ -48,14 +48,14 @@ type
   private
     FTabVisible: boolean;
     function GetPageControl: TCustomPageControl;
-    function GetPageIndex: NativeInt;
+    function GetPageIndex: nativeint;
     procedure SetPageControl(AValue: TCustomPageControl);
   protected
     procedure Changed; override;
     function CreateHandleElement: TJSHTMLElement; override;
   public
     constructor Create(AOwner: TComponent); override;
-    property PageIndex: NativeInt read GetPageIndex;
+    property PageIndex: nativeint read GetPageIndex;
     property PageControl: TCustomPageControl read GetPageControl write SetPageControl;
     property TabVisible: boolean read FTabVisible write FTabVisible;
   end;
@@ -95,7 +95,7 @@ type
     { TODO: Add event on show page }
   private
     FMultiLine: boolean;
-    FPageIndex: NativeInt;
+    FPageIndex: nativeint;
     FPages: TJSArray;
     FShowTabs: boolean;
     FTabContainerElement: TJSHTMLElement;
@@ -103,32 +103,38 @@ type
     FTabPosition: TTabPosition;
     FTabWidth: smallint;
     function GetActivePage: TCustomTabSheet;
-    function GetPage(const AIndex: NativeInt): TCustomTabSheet;
-    function GetPageCount: NativeInt;
+    function GetPage(const AIndex: nativeint): TCustomTabSheet;
+    function GetPageCount: nativeint;
     procedure SetActivePage(AValue: TCustomTabSheet);
     procedure SetMultiLine(AValue: boolean);
-    procedure SetPageIndex(AValue: NativeInt);
+    procedure SetPageIndex(AValue: nativeint);
     procedure SetShowTabs(AValue: boolean);
     procedure SetTabHeight(AValue: smallint);
     procedure SetTabPosition(AValue: TTabPosition);
     procedure SetTabWidth(AValue: smallint);
   protected
-    property TabIndex: NativeInt read FPageIndex write SetPageIndex;
+    property TabIndex: nativeint read FPageIndex write SetPageIndex;
   protected
     procedure Changed; override;
     function CreateHandleElement: TJSHTMLElement; override;
     function CreateTabContainerElement: TJSHTMLElement; virtual;
     procedure RegisterChild(AControl: TControl); override;
     procedure UnRegisterChild(AControl: TControl); override;
-    function CalcTabHeight: NativeInt; virtual;
-    function CalcTabWidth(const AText: string): NativeInt; virtual;
-    function CalcMaxTabWidth: NativeInt; virtual;
-    function CalcSumTabsWidth: NativeInt; virtual;
-    function IndexOfTab(const ACaption: string): NativeInt;
-    function RenderTab(const ACaption: string; const ALeft, ATop, AWidth, AHeight: NativeInt; const AEvent: JSValue): TJSHTMLElement; virtual;
-    function RenderTabActive(const ACaption: string; const ALeft, ATop, AWidth, AHeight: NativeInt; const AEvent: JSValue): TJSHTMLElement; virtual;
-    function RenderTabLeft(const ALeft, ATop, AWidth, AHeight: NativeInt; const AEvent: JSValue): TJSHTMLElement; virtual;
-    function RenderTabRight(const ALeft, ATop, AWidth, AHeight: NativeInt; const AEvent: JSValue): TJSHTMLElement; virtual;
+    function CalcTabHeight: nativeint; virtual;
+    function CalcTabWidth(const AText: string): nativeint; virtual;
+    function CalcMaxTabWidth: nativeint; virtual;
+    function CalcSumTabsWidth: nativeint; virtual;
+    function IndexOfTab(const ACaption: string): nativeint;
+    function RenderTab(const ACaption: string;
+      const ALeft, ATop, AWidth, AHeight: nativeint;
+      const AEvent: JSValue): TJSHTMLElement; virtual;
+    function RenderTabActive(const ACaption: string;
+      const ALeft, ATop, AWidth, AHeight: nativeint;
+      const AEvent: JSValue): TJSHTMLElement; virtual;
+    function RenderTabLeft(const ALeft, ATop, AWidth, AHeight: nativeint;
+      const AEvent: JSValue): TJSHTMLElement; virtual;
+    function RenderTabRight(const ALeft, ATop, AWidth, AHeight: nativeint;
+      const AEvent: JSValue): TJSHTMLElement; virtual;
     procedure RenderTabs; virtual;
     procedure TabClick(AEvent: TJSMouseEvent); virtual;
     procedure TabLeftClick(AEvent: TJSMouseEvent); virtual;
@@ -140,9 +146,9 @@ type
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
     function AddTabSheet: TCustomTabSheet;
-    function IndexOf(APage: TCustomTabSheet): NativeInt; virtual;
-    property PageCount: NativeInt read GetPageCount;
-    property Pages[const AIndex: NativeInt]: TCustomTabSheet read GetPage;
+    function IndexOf(APage: TCustomTabSheet): nativeint; virtual;
+    property PageCount: nativeint read GetPageCount;
+    property Pages[const AIndex: nativeint]: TCustomTabSheet read GetPage;
   public
     property ActivePage: TCustomTabSheet read GetActivePage write SetActivePage;
     property MultiLine: boolean read FMultiLine write SetMultiLine;
@@ -171,7 +177,7 @@ begin
   end;
 end;
 
-function TCustomTabSheet.GetPageIndex: NativeInt;
+function TCustomTabSheet.GetPageIndex: nativeint;
 begin
   if (Parent is TCustomPageControl) then
   begin
@@ -233,7 +239,7 @@ begin
   Result := GetPage(FPageIndex);
 end;
 
-function TCustomPageControl.GetPage(const AIndex: NativeInt): TCustomTabSheet;
+function TCustomPageControl.GetPage(const AIndex: nativeint): TCustomTabSheet;
 begin
   if (AIndex >= 0) and (AIndex < FPages.Length) then
   begin
@@ -245,7 +251,7 @@ begin
   end;
 end;
 
-function TCustomPageControl.GetPageCount: NativeInt;
+function TCustomPageControl.GetPageCount: nativeint;
 begin
   Result := FPages.Length;
 end;
@@ -263,7 +269,7 @@ begin
   end;
 end;
 
-procedure TCustomPageControl.SetPageIndex(AValue: NativeInt);
+procedure TCustomPageControl.SetPageIndex(AValue: nativeint);
 begin
   if (AValue < 0) or (AValue >= FPages.Length) then
   begin
@@ -339,7 +345,7 @@ end;
 
 procedure TCustomPageControl.RegisterChild(AControl: TControl);
 var
-  VIndex: NativeInt;
+  VIndex: nativeint;
 begin
   inherited RegisterChild(AControl);
   if (Assigned(AControl)) and (AControl is TCustomTabSheet) then
@@ -354,7 +360,7 @@ end;
 
 procedure TCustomPageControl.UnRegisterChild(AControl: TControl);
 var
-  VIndex: NativeInt;
+  VIndex: nativeint;
 begin
   inherited UnRegisterChild(AControl);
   if (Assigned(AControl)) and (AControl is TCustomTabSheet) then
@@ -367,7 +373,7 @@ begin
   end;
 end;
 
-function TCustomPageControl.CalcTabHeight: NativeInt;
+function TCustomPageControl.CalcTabHeight: nativeint;
 begin
   if (FShowTabs) then
   begin
@@ -386,7 +392,7 @@ begin
   end;
 end;
 
-function TCustomPageControl.CalcTabWidth(const AText: string): NativeInt;
+function TCustomPageControl.CalcTabWidth(const AText: string): nativeint;
 begin
   if (FTabWidth > 0) then
   begin
@@ -398,11 +404,11 @@ begin
   end;
 end;
 
-function TCustomPageControl.CalcMaxTabWidth: NativeInt;
+function TCustomPageControl.CalcMaxTabWidth: nativeint;
 var
   VPage: TCustomTabSheet;
-  VIndex: NativeInt;
-  VWidth: NativeInt;
+  VIndex: nativeint;
+  VWidth: nativeint;
 begin
   Result := 0;
   if (FTabWidth > 0) then
@@ -426,9 +432,9 @@ begin
   end;
 end;
 
-function TCustomPageControl.CalcSumTabsWidth: NativeInt;
+function TCustomPageControl.CalcSumTabsWidth: nativeint;
 var
-  VIndex: NativeInt;
+  VIndex: nativeint;
   VPage: TCustomTabSheet;
 begin
   Result := 0;
@@ -442,23 +448,25 @@ begin
   end;
 end;
 
-function TCustomPageControl.IndexOfTab(const ACaption: string): NativeInt;
+function TCustomPageControl.IndexOfTab(const ACaption: string): nativeint;
 var
-  VIndex: NativeInt;
+  VIndex: nativeint;
   VPage: TCustomTabSheet;
 begin
   Result := -1;
   for VIndex := 0 to (FPages.Length - 1) do
   begin
     VPage := TCustomTabSheet(FPages[VIndex]);
-    if (Assigned(VPage)) and (VPage.TabVisible) and (SameText(VPage.Caption, ACaption)) then
+    if (Assigned(VPage)) and (VPage.TabVisible) and
+      (SameText(VPage.Caption, ACaption)) then
     begin
       Result := VIndex;
     end;
   end;
 end;
 
-function TCustomPageControl.RenderTab(const ACaption: string; const ALeft, ATop, AWidth, AHeight: NativeInt; const AEvent: JSValue): TJSHTMLElement;
+function TCustomPageControl.RenderTab(const ACaption: string;
+  const ALeft, ATop, AWidth, AHeight: nativeint; const AEvent: JSValue): TJSHTMLElement;
 begin
   Result := TJSHTMLElement(Document.CreateElement('button'));
   with Result do
@@ -474,7 +482,7 @@ begin
     Style.SetProperty('border-top-right-radius', '2px');
     /// Color
     Style.SetProperty('background-color', '#dddada');
-    /// Font   
+    /// Font
     Style.SetProperty('color', JSColor(Font.Color));
     Style.SetProperty('font', JSFont(Font));
     /// Focus highlight
@@ -493,7 +501,8 @@ begin
   end;
 end;
 
-function TCustomPageControl.RenderTabActive(const ACaption: string; const ALeft, ATop, AWidth, AHeight: NativeInt; const AEvent: JSValue): TJSHTMLElement;
+function TCustomPageControl.RenderTabActive(const ACaption: string;
+  const ALeft, ATop, AWidth, AHeight: nativeint; const AEvent: JSValue): TJSHTMLElement;
 begin
   Result := RenderTab(ACaption, ALeft, ATop, AWidth, AHeight, AEvent);
   with Result do
@@ -505,7 +514,8 @@ begin
   end;
 end;
 
-function TCustomPageControl.RenderTabLeft(const ALeft, ATop, AWidth, AHeight: NativeInt; const AEvent: JSValue): TJSHTMLElement;
+function TCustomPageControl.RenderTabLeft(const ALeft, ATop, AWidth, AHeight: nativeint;
+  const AEvent: JSValue): TJSHTMLElement;
 begin
   Result := RenderTab('‹', ALeft, ATop, AWidth, AHeight, AEvent);
   with Result do
@@ -515,7 +525,8 @@ begin
   end;
 end;
 
-function TCustomPageControl.RenderTabRight(const ALeft, ATop, AWidth, AHeight: NativeInt; const AEvent: JSValue): TJSHTMLElement;
+function TCustomPageControl.RenderTabRight(const ALeft, ATop, AWidth, AHeight: nativeint;
+  const AEvent: JSValue): TJSHTMLElement;
 begin
   Result := RenderTab('›', ALeft, ATop, AWidth, AHeight, AEvent);
   with Result do
@@ -529,7 +540,7 @@ procedure TCustomPageControl.RenderTabs;
 var
   form: TCustomForm;
 
-  function AdjustWithPPI(aValue: Integer): Integer;
+  function AdjustWithPPI(aValue: integer): integer;
   begin
     if Assigned(form) then
       Result := Trunc(96 * aValue / form.DesignTimePPI)
@@ -547,21 +558,21 @@ var
     if p is TCustomForm then
       Result := TCustomForm(p)
     else
-      Result := Nil;
+      Result := nil;
   end;
 
 var
   VPage: TCustomTabSheet;
-  VIndex: NativeInt;
-  VStartIndex: NativeInt;
-  VEndIndex: NativeInt;
+  VIndex: nativeint;
+  VStartIndex: nativeint;
+  VEndIndex: nativeint;
   VTabCaption: string;
-  VTabHeight: NativeInt;
-  VTabLeft: NativeInt;
-  VTabWidth: NativeInt;
-  VSumTabsWidth: NativeInt;
-  VMaxTabWidth: NativeInt;
-  VTabsCount: NativeInt;
+  VTabHeight: nativeint;
+  VTabLeft: nativeint;
+  VTabWidth: nativeint;
+  VSumTabsWidth: nativeint;
+  VMaxTabWidth: nativeint;
+  VTabsCount: nativeint;
 begin
   form := FindParentForm;
   VTabHeight := CalcTabHeight;
@@ -574,7 +585,9 @@ begin
     /// Bounds
     Style.SetProperty('left', '0px');
     Style.SetProperty('top', '0px');
-    Style.SetProperty('width', IntToStr(AdjustWithPPI(IfThen((VSumTabsWidth > Width), VSumTabsWidth, Width))) + 'px');
+    Style.SetProperty('width',
+      IntToStr(AdjustWithPPI(IfThen((VSumTabsWidth > Width), VSumTabsWidth,
+      Width))) + 'px');
     Style.SetProperty('height', IntToStr(AdjustWithPPI(VTabHeight)) + 'px');
     /// Position
     Style.SetProperty('position', 'absolute');
@@ -616,12 +629,16 @@ begin
           if (VIndex = FPageIndex) then
           begin
             /// Register tab
-            FTabContainerElement.AppendChild(RenderTabActive(VTabCaption, AdjustWithPPI(VTabLeft), 0, AdjustWithPPI(VTabWidth), AdjustWithPPI(VTabHeight), @TabClick));
+            FTabContainerElement.AppendChild(RenderTabActive(VTabCaption,
+              AdjustWithPPI(VTabLeft), 0, AdjustWithPPI(VTabWidth),
+              AdjustWithPPI(VTabHeight), @TabClick));
           end
           else
           begin
             /// Register tab
-            FTabContainerElement.AppendChild(RenderTab(VTabCaption, AdjustWithPPI(VTabLeft), 0, AdjustWithPPI(VTabWidth), AdjustWithPPI(VTabHeight), @TabClick));
+            FTabContainerElement.AppendChild(RenderTab(VTabCaption,
+              AdjustWithPPI(VTabLeft), 0, AdjustWithPPI(VTabWidth),
+              AdjustWithPPI(VTabHeight), @TabClick));
           end;
           /// Calculate the next position of the tab
           VTabLeft := VTabLeft + VTabWidth;
@@ -631,7 +648,8 @@ begin
       with FTabContainerElement do // First and Last Tabs
       begin
         AppendChild(RenderTabLeft(0, 0, 40, AdjustWithPPI(VTabHeight), @TabLeftClick));
-        AppendChild(RenderTabRight(AdjustWithPPI(Width - 40), 0, 40, AdjustWithPPI(VTabHeight), @TabRightClick));
+        AppendChild(RenderTabRight(AdjustWithPPI(Width - 40), 0, 40,
+          AdjustWithPPI(VTabHeight), @TabRightClick));
       end;
     end
     else
@@ -650,12 +668,16 @@ begin
           if (VIndex = FPageIndex) then
           begin
             /// Register tab
-            FTabContainerElement.AppendChild(RenderTabActive(VTabCaption, AdjustWithPPI(VTabLeft), 0, AdjustWithPPI(VTabWidth), AdjustWithPPI(VTabHeight), @TabClick));
+            FTabContainerElement.AppendChild(RenderTabActive(VTabCaption,
+              AdjustWithPPI(VTabLeft), 0, AdjustWithPPI(VTabWidth),
+              AdjustWithPPI(VTabHeight), @TabClick));
           end
           else
           begin
             /// Register tab
-            FTabContainerElement.AppendChild(RenderTab(VTabCaption, AdjustWithPPI(VTabLeft), 0, AdjustWithPPI(VTabWidth), AdjustWithPPI(VTabHeight), @TabClick));
+            FTabContainerElement.AppendChild(RenderTab(VTabCaption,
+              AdjustWithPPI(VTabLeft), 0, AdjustWithPPI(VTabWidth),
+              AdjustWithPPI(VTabHeight), @TabClick));
           end;
           /// Calculate the next position of the tab
           VTabLeft := VTabLeft + VTabWidth;
@@ -682,9 +704,9 @@ end;
 
 procedure TCustomPageControl.UpdatePages;
 var
-  VIndex: NativeInt;
+  VIndex: nativeint;
   VPage: TCustomTabSheet;
-  VTabHeight: NativeInt;
+  VTabHeight: nativeint;
 begin
   VTabHeight := CalcTabHeight;
   for VIndex := 0 to (FPages.Length - 1) do
@@ -712,7 +734,7 @@ end;
 
 class function TCustomPageControl.GetControlClassDefaultSize: TSize;
 begin
-  Result.Cx := 200; 
+  Result.Cx := 200;
   Result.Cy := 200;
 end;
 
@@ -748,9 +770,10 @@ begin
   Result.PageControl := Self;
 end;
 
-function TCustomPageControl.IndexOf(APage: TCustomTabSheet): NativeInt;
+function TCustomPageControl.IndexOf(APage: TCustomTabSheet): nativeint;
 begin
   Result := FPages.IndexOf(APage);
 end;
 
 end.
+

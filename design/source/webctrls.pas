@@ -42,7 +42,7 @@ uses
   BtnCtrls,
   DataGrid,
   CustomTimer,
-  Grids;
+  Grids, menus;
 
 type
 
@@ -513,6 +513,7 @@ type
     property TabStop;
     property Visible;
     property Wordwrap;
+    property PopupMenu;
     property OnClick;
     property OnDblClick;
     property OnEnter;
@@ -886,6 +887,11 @@ type
     property RowCount;
   end;
 
+  TWPopupMenu = class(TPopupMenu)
+  published
+
+  end;
+
 procedure Register;
 
 implementation
@@ -912,7 +918,8 @@ begin
     TWFileButton,
     TWDataGrid,
     TWPagination,
-    TWStringGrid
+    TWStringGrid,
+    TWPopupMenu
     ]);
 end;
 

@@ -109,6 +109,7 @@ type
   TWinControlClass = class of TWinControl;
   TControl = class;
   TControlClass = class of TControl;
+  TCustomPopupMenu = class;
 
   TAlign = (alNone, alTop, alBottom, alLeft, alRight, alClient, alCustom);
   TAlignSet = set of TAlign;
@@ -382,9 +383,11 @@ type
     FOnKeyDown: TKeyEvent;
     FOnKeyPress: TKeyPressEvent;
     FOnKeyUp: TKeyEvent;
+    FPopupMenu: TCustomPopupMenu;
     function GetControl(const AIndex: NativeInt): TControl;
     function GetControlCount: NativeInt;
     function GetControlIndex(const AControl: TControl): NativeInt;
+    procedure SetPopupMenu(AValue: TCustomPopupMenu);
   protected
     procedure DoEnter; virtual;
     procedure DoExit; virtual;
@@ -410,6 +413,8 @@ type
     property ControlCount: NativeInt read GetControlCount;
     property ControlIndex[const AControl: TControl]: NativeInt read GetControlIndex;
     property Controls[const AIndex: NativeInt]: TControl read GetControl; default;
+    property PopupMenu: TCustomPopupMenu read FPopupMenu write SetPopupMenu;
+
   public
     property OnEnter: TNotifyEvent read FOnEnter write FOnEnter;
     property OnExit: TNotifyEvent read FOnExit write FOnExit;
@@ -417,6 +422,23 @@ type
     property OnKeyPress: TKeyPressEvent read FOnKeyPress write FOnKeyPress;
     property OnKeyUp: TKeyEvent read FOnKeyUp write FOnKeyUp;
   end;
+
+  { TCustomPopupMenu }
+
+  TCustomPopupMenu = class(TWinControl)
+  protected
+    procedure Changed; override;
+    function CreateHandleElement: TJSHTMLElement; override;
+  protected
+    Fx, Fy: Integer;
+    procedure RenderMenu;
+  public
+    constructor Create(AOwner: TComponent); override;
+    procedure Popup; overload;
+    procedure Popup(Ax, Ay: Integer); overload;
+  end;
+
+
 
   { TCustomControl }
 
@@ -862,6 +884,59 @@ begin
     else
       Result := '';
   end;
+end;
+
+{ TCustomPopupMenu }
+
+procedure TCustomPopupMenu.Changed;
+var
+  i: integer;
+begin
+  inherited Changed;
+  HandleElement.style.setProperty('background-color', '#f1f1f1');
+  HandleElement.style.setProperty('box-shadow', '0px 8px 16px 0px rgba(0,0,0,0.2)');
+  HandleElement.style.setProperty('z-index', '1');
+  for i:=0 to ControlCount -1 do
+  begin
+    Controls[i].SetBounds(0, 27 * i, 200, 27);
+  end;
+  SetBounds(fx, fy, 200, (i + 1) *27);
+  RenderMenu;
+end;
+
+function TCustomPopupMenu.CreateHandleElement: TJSHTMLElement;
+begin
+  Result := TJSHTMLElement(Document.CreateElement('div'));
+end;
+
+procedure TCustomPopupMenu.RenderMenu;
+begin
+end;
+
+constructor TCustomPopupMenu.Create(AOwner: TComponent);
+begin
+  inherited Create(AOwner);
+  BeginUpdate;
+  try
+    SetBounds(0,0,200,200);
+  finally
+    EndUpdate;
+  end;
+  Visible:= false;
+end;
+
+procedure TCustomPopupMenu.Popup;
+begin
+  Popup(0,0);
+end;
+
+procedure TCustomPopupMenu.Popup(Ax, Ay: Integer);
+begin
+  Fx := Ax;
+  Fy := Ay;
+  SetBounds(ax,ay, 200,200);
+  Visible:=true;
+  Changed;
 end;
 
 { TControlCanvas }
@@ -2264,6 +2339,12 @@ end;
 function TWinControl.GetControlIndex(const AControl: TControl): NativeInt;
 begin
   Result := FControls.IndexOf(AControl);
+end;
+
+procedure TWinControl.SetPopupMenu(AValue: TCustomPopupMenu);
+begin
+  if FPopupMenu=AValue then Exit;
+  FPopupMenu:=AValue;
 end;
 
 procedure TWinControl.DoEnter;
