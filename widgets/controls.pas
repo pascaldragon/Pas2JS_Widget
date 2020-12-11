@@ -1873,8 +1873,7 @@ begin
         VControl.BeginUpdate;
         try
           VSpacing := VControl.BorderSpacing;
-          if not (akLeft in VControl.Anchors) then
-            VControl.Left := VRight - VControl.Width - VSpacing.Right - VSpacing.Around;
+          VControl.Left := VRight - VControl.Width - VSpacing.Right - VSpacing.Around;
           VControl.Top := VTop + VSpacing.Top + VSpacing.Around;
           VControl.Width := VControl.Width;
           VControl.Height := VBotton - VTop - VSpacing.Top - VSpacing.Bottom - (VSpacing.Around * 2);
