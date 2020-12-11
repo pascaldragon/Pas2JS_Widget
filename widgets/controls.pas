@@ -1441,7 +1441,7 @@ begin
   VOffSets := OffSets(FHandleElement);
   VShift := ExtractShiftState(AEvent);
   X := Trunc(AEvent.ClientX - VOffSets.Left);
-  Y := Trunc(AEvent.ClientY - VOffSets.Left);
+  Y := Trunc(AEvent.ClientY - VOffSets.Top);
   AEvent.StopPropagation;
   MouseMove(VShift, X, Y);
   Result := True;
