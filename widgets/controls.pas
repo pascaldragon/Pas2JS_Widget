@@ -181,7 +181,7 @@ type
     procedure Assign(Source: TPersistent); override;
     procedure BeginUpdate; virtual;
     procedure EndUpdate; virtual;
-  public
+  published
     property Around: NativeInt read FAround write SetAround;
     property Bottom: NativeInt read FBottom write SetBottom;
     property Left: NativeInt read FLeft write SetLeft;
@@ -239,6 +239,7 @@ type
     function GetClientRect: TRect;
     function GetClientWidth: NativeInt;
     function GetText: TCaption;
+    function IsAnchorsStored: Boolean;
     procedure SetAlign(AValue: TAlign);
     procedure SetAnchors(AValue: TAnchors);
     procedure SetAutoSize(AValue: boolean);
@@ -342,7 +343,7 @@ type
     procedure SetBounds(ALeft, ATop, AWidth, AHeight: NativeInt); virtual;
   public
     property Align: TAlign read FAlign write SetAlign;
-    property Anchors: TAnchors read FAnchors write SetAnchors;
+    property Anchors: TAnchors read FAnchors write SetAnchors stored IsAnchorsStored default [akLeft, akTop];
     property AutoSize: boolean read FAutoSize write SetAutoSize default False;
     property BorderSpacing: TControlBorderSpacing read FBorderSpacing write SetBorderSpacing;
     property Caption: TCaption read GetText write SetText;
@@ -439,13 +440,13 @@ type
 
 const
   AnchorAlign: array[TAlign] of TAnchors = (
-    [],                                // alNone
+    [akLeft, akTop],                   // alNone
     [akLeft, akTop, akRight],          // alTop
     [akLeft, akRight, akBottom],       // alBottom
     [akLeft, akTop, akBottom],         // alLeft
     [akRight, akTop, akBottom],        // alRight
     [akLeft, akTop, akRight, akBottom],// alClient
-    []                                 // alCustom
+    [akLeft, akTop]                    // alCustom
     );
 
 function FromCharCode(ACode: NativeInt): char; external Name 'String.fromCharCode';
@@ -1042,11 +1043,23 @@ begin
   Result := RealGetText;
 end;
 
+function TControl.IsAnchorsStored: Boolean;
+begin
+  Result := Anchors <> AnchorAlign[Align];
+end;
+
 procedure TControl.SetAlign(AValue: TAlign);
+var
+  oldalign: TAlign;
 begin
   if (FAlign <> AValue) then
   begin
+    oldalign := FAlign;
     FAlign := AValue;
+    { as long as Anchors were the default for the previous Align keep them as
+      the default values for the new Align }
+    if (Anchors = AnchorAlign[oldalign]) and (Anchors <> AnchorAlign[FAlign]) then
+      Anchors := AnchorAlign[FAlign];
     { if we have a parent we need to get our new size which the parent needs to
       calculate first }
     if Assigned(FParent) then
@@ -1826,11 +1839,18 @@ begin
         VControl.BeginUpdate;
         try
           VSpacing := VControl.BorderSpacing;
+          { a control with bottom alignment and top anchor set keeps its
+            position and enlarges its size instead of keeping its size }
           VControl.Left := VLeft + VSpacing.Left + VSpacing.Around;
-          if not (akBottom in VControl.Anchors) then
-            VControl.Top := VBotton - VControl.Height - VSpacing.Bottom - VSpacing.Around;
+          if not (akTop in VControl.Anchors) then
+            VControl.Top := VBotton - VControl.Height - VSpacing.Bottom - VSpacing.Around
+          else
+            VControl.Top := VControl.Top;
           VControl.Width := VWidth - VSpacing.Left - VSpacing.Right - (VSpacing.Around * 2);
-          VControl.Height := VControl.Height;
+          if not (akTop in VControl.Anchors) then
+            VControl.Height := VControl.Height
+          else
+            VControl.Height := VBotton - VControl.Top;
         finally
           VControl.EndUpdate;
         end;
@@ -1873,9 +1893,17 @@ begin
         VControl.BeginUpdate;
         try
           VSpacing := VControl.BorderSpacing;
-          VControl.Left := VRight - VControl.Width - VSpacing.Right - VSpacing.Around;
+          { a control with right alignment and left anchor set keeps its
+            position and enlarges its size instead of keeping its size }
+          if not (akLeft in Anchors) then
+            VControl.Left := VRight - VControl.Width - VSpacing.Right - VSpacing.Around
+          else
+            VControl.Left := VControl.Left;
           VControl.Top := VTop + VSpacing.Top + VSpacing.Around;
-          VControl.Width := VControl.Width;
+          if not (akLeft in Anchors) then
+            VControl.Width := VControl.Width
+          else
+            VControl.Width := VRight - VControl.Left;
           VControl.Height := VBotton - VTop - VSpacing.Top - VSpacing.Bottom - (VSpacing.Around * 2);
         finally
           VControl.EndUpdate;
