@@ -853,7 +853,7 @@ end;
 
 function TWTimeEditBox.GetValue: TTime;
 begin
-  Result := StrToTimeDef(RealGetText, 0);
+  Result := StrToTimeDef(RealGetText, 0, FormatSettings);
 end;
 
 procedure TWTimeEditBox.SetValue(AValue: TTime);
@@ -868,7 +868,7 @@ end;
 
 procedure TWTimeEditBox.RealSetText(const AValue: string);
 begin
-  inherited RealSetText(FormatDateTime(ShortTimeFormat, StrToTimeDef(AValue, 0)));
+  inherited RealSetText(FormatDateTime(ShortTimeFormat, StrToTimeDef(AValue, 0, FormatSettings)));
 end;
 
 end.

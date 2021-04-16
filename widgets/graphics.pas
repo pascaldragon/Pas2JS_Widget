@@ -191,6 +191,8 @@ type
     function TextExtent(const AText: string): TSize; virtual;
     function TextHeight(const AText: string): NativeInt; virtual;
     function TextWidth(const AText: string): NativeInt; virtual;
+    property CanvasElement: TJSHTMLCanvasElement read FCanvasElement;
+    property ContextElement: TJSCanvasRenderingContext2D read FContextElement;
   published
     property Brush: TBrush read FBrush write FBrush;
     property Font: TFont read FFont write FFont;

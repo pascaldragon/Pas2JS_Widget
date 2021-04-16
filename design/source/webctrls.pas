@@ -874,7 +874,11 @@ type
     property OnPageClick;
   end;
 
+  { TWStringGrid }
+
   TWStringGrid = class(TCustomStringGrid)
+  public
+    constructor Create(aOwner: TComponent); override;
   published
     property Anchors;
     property ColCount;
@@ -883,7 +887,10 @@ type
     property DefaultRowHeight;
     property FixedCols;
     property FixedRows;
+    property Options default [];
     property RowCount;
+
+    property OnSelection;
   end;
 
 procedure Register;
@@ -914,6 +921,14 @@ begin
     TWPagination,
     TWStringGrid
     ]);
+end;
+
+{ TWStringGrid }
+
+constructor TWStringGrid.Create(aOwner: TComponent);
+begin
+  inherited Create(aOwner);
+  Options := [];
 end;
 
 { TWComboBox }

@@ -41,7 +41,6 @@ function InitResourceComponent(Instance: TComponent; RootAncestor: TClass
     Stream: TStream;
     BinStream: TMemoryStream;
     Reader: TReader;
-    script: TJSElement;
     info: TResourceInfo;
   begin
     Result := False;

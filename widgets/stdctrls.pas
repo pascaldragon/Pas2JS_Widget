@@ -138,7 +138,7 @@ type
     procedure SelectAll; virtual;
     procedure SelectRange(ALow, AHigh: Integer; ASelected: boolean); virtual;
     property ItemHeight: NativeInt read FItemHeight write SetItemHeight;
-    property ItemIndex: NativeInt read FItemIndex write SetItemIndex;
+    property ItemIndex: NativeInt read FItemIndex write SetItemIndex default -1;
     property Items: TStrings read FItems write SetItems;
     property MultiSelect: Boolean read FMultiSelect write SetMultiSelect default False;
     property SelCount: integer read GetSelCount;

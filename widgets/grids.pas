@@ -19,6 +19,8 @@ unit Grids;
 
 {$mode objfpc}{$H+}
 
+{.$define DEBUG_GRID}
+
 interface
 
 uses
@@ -32,6 +34,35 @@ type
   TGridColumn = class;
 
   EGridException = class(Exception);
+
+  TGridOption = (
+    goRowSelect { select a complete row instead of only a single cell }
+  );
+  TGridOptions = set of TGridOption;
+
+  TGridState = (gsNormal, gsSelecting, gsRowSizing, gsColSizing, gsRowMoving,
+    gsColMoving, gsHeaderClicking, gsButtonColumnClicking);
+
+  TGridZone = (gzNormal, gzFixedCols, gzFixedRows, gzFixedCells, gzInvalid);
+  TGridZoneSet = set of TGridZone;
+
+  TGridDataCache = record
+    FixedWidth: Integer;        { Sum( Fixed ColsWidths[i] ) }
+    FixedHeight: Integer;       { Sum( Fixed RowsHeights[i] ) }
+    GridWidth: Integer;         { Sum( ColWidths[i] ) }
+    GridHeight: Integer;        { Sum( RowHeights[i] ) }
+    AccumWidth: TIntegerList;   { Accumulated width per column }
+    AccumHeight: TIntegerList;  { Accumulated Height per row }
+    HotGridZone: TGridZone;     { GridZone of last MouseMove }
+    ClickCell: TPoint;          { cell coords of the latest mouse click }
+    ClickMouse: TPoint;         { mouse coords of the latest mouse click }
+  end;
+
+const
+  DefaultGridOptions = [];
+
+type
+  TOnSelectEvent = procedure(aSender: TObject; aCol, aRow: Integer) of object;
 
   { TGridColumnTitle }
 
@@ -128,17 +159,23 @@ type
     property VisibleCount: Integer read GetVisibleCount;
   end;
 
+  TGridRect = TRect;
+  TGridCoord = TPoint;
+
   { TCustomGrid }
 
   TCustomGrid = class(TCustomControl)
   private
+    fAllowOutboundEvents: Boolean;
     fBorderColor: TColor;
+    fCol: Integer;
     fCols: TIntegerList;
     fColumns: TGridColumns;
     fContentTable: TJSHTMLTableElement;
     fDefColWidth: Integer;
     fDefRowHeight: Integer;
     fEditorMode: Boolean;
+    fGCache: TGridDataCache;
     fFixedColor: TColor;
     fFixedCols: Integer;
     fFixedColsTable: TJSHTMLTableElement;
@@ -151,32 +188,46 @@ type
     fGridLineColor: TColor;
     fGridLineStyle: TPenStyle;
     fGridLineWidth: Integer;
+    fOnAfterSelection: TOnSelectEvent;
+    fOnBeforeSelection: TOnSelectEvent;
+    fOnSelection: TOnSelectEvent;
     fOnTopLeftChanged: TNotifyEvent;
+    fOptions: TGridOptions;
+    fRange: TGridRect;
     fRealizedDefColWidth: Integer;
     fRealizedDefRowHeight: Integer;
+    fRow: Integer;
     fRows: TIntegerList;
     fScrollBars: TScrollStyle;
+    fSelectedColor: TColor;
     fTopLeft: TPoint;
     fUpdateCount: Integer;
     procedure AdjustGrid(aIsColumn: Boolean; aOld, aNew: Integer);
+    procedure CheckCount(aNewColCount, aNewRowCount: Integer);
     procedure CheckFixed(aCols, aRows, aFixedCols, aFixedRows: Integer);
     function DefaultColWidthIsStored: Boolean;
     function DefaultRowHeightIsStored: Boolean;
     procedure DoTopLeftChanged;
+    procedure FixPosition(aIsColumn: Boolean; aIndex: Integer);
     function GetColCount: Integer;
     function GetColumns: TGridColumns;
-    function GetColWidth(aCol: Integer): Integer;
+    function GetColWidths(aCol: Integer): Integer;
     function GetDefColWidth: Integer;
     function GetDefRowHeight: Integer;
     function GetFixedColor: TColor; virtual;
     function GetRowCount: Integer;
     function GetRowHeights(aRow: Integer): Integer;
+    function GetSelectedColor: TColor; virtual;
+    procedure HeadersMouseMove(const aX, aY: Integer);
     function IsColumnsStored: Boolean;
+    procedure ResetHotCell;
+    function ScrollToCell(const aCol, aRow: Integer; const aForceFullyVisible: Boolean = True): Boolean;
     procedure SetBorderColor(aValue: TColor);
     procedure SetBorderStyle(aValue: TBorderStyle);
+    procedure SetCol(aValue: Integer);
     procedure SetColCount(aValue: Integer);
     procedure SetColumns(aValue: TGridColumns);
-    procedure SetColWidth(aCol: Integer; aValue: Integer);
+    procedure SetColWidths(aCol: Integer; aValue: Integer);
     procedure SetDefColWidth(aValue: Integer);
     procedure SetDefRowHeight(aValue: Integer);
     procedure SetEditorMode(aValue: Boolean);
@@ -188,12 +239,21 @@ type
     procedure SetGridLineColor(aValue: TColor);
     procedure SetGridLineStyle(aValue: TPenStyle);
     procedure SetGridLineWidth(aValue: Integer);
+    procedure SetOptions(aValue: TGridOptions);
+    procedure SetRow(aValue: Integer);
     procedure SetRowCount(aValue: Integer);
     procedure SetRowHeights(aRow: Integer; aValue: Integer);
     procedure SetScrollBars(aValue: TScrollStyle);
+    procedure SetSelectedColor(aValue: TColor); virtual;
+    procedure UpdateCachedSizes;
   protected
-    function GetCells(aCol, aRow: Integer): String; virtual;
+    fGridState: TGridState;
+    procedure AfterMoveSelection(const aPrevCol, aPrevRow: Integer); virtual;
+    procedure BeforeMoveSelection(const aCol, aRow: Integer); virtual;
+    procedure CacheMouseDown(aX, aY: Integer);
+    procedure CellClick(const aCol, aRow: Integer; const aButton: TMouseButton); virtual;
     procedure Changed; override;
+    procedure CheckLimits(var aCol, aRow: Integer);
     function ColumnFromGridColumn(aColumn: Integer): TGridColumn;
     function ColumnIndexFromGridColumn(aColumn: Integer): Integer;
     procedure ColumnsChanged(aColumn: TGridColumn);
@@ -201,7 +261,10 @@ type
     function CreateHandleElement: TJSHTMLElement; override;
     procedure DoScroll; override;
     function FirstGridColumn: Integer; virtual;
+    function FixedGrid: Boolean;
+    function GetCells(aCol, aRow: Integer): String; virtual;
     function GetDefaultRowHeight: Integer; virtual;
+    function GetIsCellSelected(aCol, aRow: Integer): Boolean; virtual;
     function GridColumnFromColumnIndex(aColumnIndex: Integer): Integer;
     procedure InternalSetColCount(aCount: Integer);
     procedure InvalidateCell(aCol, aRow: Integer; aRedraw: Boolean); overload;
@@ -209,15 +272,26 @@ type
     function IsColumnIndexVariable(aIndex: Integer): Boolean;
     function IsRowIndexValid(aIndex: Integer): Boolean;
     function IsRowIndexVariable(aIndex: Integer): Boolean;
+    procedure MouseDown(aButton: TMouseButton; aShift: TShiftState; aX, aY: integer); override;
+    procedure MouseMove(aShift: TShiftState; aX, aY: integer); override;
+    procedure MouseUp(aButton: TMouseButton; aShift: TShiftState; aX, aY: integer); override;
+    function MoveExtend(aRelative: Boolean; aCol, aRow: Integer; aForceFullyVisible: Boolean = True): Boolean;
+    function MoveNextSelectable(aRelative: Boolean; aDCol, aDRow: Integer): Boolean; virtual;
+    procedure MoveSelection; virtual;
+    function OffsetToColRow(aIsCol, aFisical: Boolean; aOffset: Integer; out aIndex, aRest: Integer): Boolean;
+    function SelectCell(aCol, aRow: Integer): Boolean; virtual;
     procedure SizeChanged(aOldColCount, aOldRowCount: Integer); virtual;
+    function TryMoveSelection(aRelative: Boolean; var aCol, aRow: Integer): Boolean;
     procedure TopLeftChanged; virtual;
     procedure UpdateBorderStyle;
     procedure VisualChange; virtual;
 
+    property AllowOutboundEvents: Boolean read fAllowOutboundEvents write fAllowOutboundEvents default True;
     property BorderColor: TColor read fBorderColor write SetBorderColor default cl3DDKShadow;
     property BorderStyle: TBorderStyle read fGridBorderStyle write SetBorderStyle default bsSingle;
+    property Col: Integer read fCol write SetCol;
     property ColCount: Integer read GetColCount write SetColCount default 5;
-    property ColWidths[Col: Integer]: Integer read GetColWidth write SetColWidth;
+    property ColWidths[Col: Integer]: Integer read GetColWidths write SetColWidths;
     property Columns: TGridColumns read GetColumns write SetColumns stored IsColumnsStored;
     property DefaultColWidth: Integer read GetDefColWidth write SetDefColWidth stored DefaultColWidthIsStored;
     property DefaultRowHeight: Integer read GetDefRowHeight write SetDefRowHeight stored DefaultRowHeightIsStored;
@@ -227,17 +301,28 @@ type
     property GridLineColor: TColor read fGridLineColor write SetGridLineColor default clSilver;
     property GridLineStyle: TPenStyle read fGridLineStyle write SetGridLineStyle;
     property GridLineWidth: Integer read fGridLineWidth write SetGridLineWidth default 1;
+    property Options: TGridOptions read fOptions write SetOptions default DefaultGridOptions;
+    property Row: Integer read fRow write SetRow;
     property RowCount: Integer read GetRowCount write SetRowCount default 5;
     property RowHeights[Row: Integer]: Integer read GetRowHeights write SetRowHeights;
     property ScrollBars: TScrollStyle read fScrollBars write SetScrollBars default ssAutoBoth;
+    property SelectedColor: TColor read GetSelectedColor write SetSelectedColor;
+
+    property OnAfterSelection: TOnSelectEvent read fOnAfterSelection write fOnAfterSelection;
+    property OnBeforeSelection: TOnSelectEvent read fOnBeforeSelection write fOnBeforeSelection;
+    property OnSelection: TOnSelectEvent read fOnSelection write fOnSelection;
   public
     constructor Create(aOwner: TComponent); override;
     destructor Destroy; override;
 
+    function CellToGridZone(aCol, aRow: Integer): TGridZone;
     procedure Clear;
     function ClearCols: Boolean;
     function ClearRows: Boolean;
     procedure InvalidateCell(aCol, aRow: Integer); overload;
+    procedure MouseToCell(aX, aY: Integer; out aCol, aRow: Integer); overload;
+    function MouseToCell(const aMouse: TPoint): TGridCoord; overload; inline;
+    function MouseToGridZone(aX, aY: Integer): TGridZone;
 
     property EditorMode: Boolean read fEditorMode write SetEditorMode;
     property FixedCols: Integer read fFixedCols write SetFixedCols default 1;
@@ -301,8 +386,14 @@ type
     constructor Create(aOwner: TComponent); override;
     destructor Destroy; override;
 
+    property AllowOutboundEvents;
+    property Col;
     property ColCount;
+    property ColWidths;
+    property Options;
+    property Row;
     property RowCount;
+    property RowHeights;
   end;
 
   { TCustomStringGrid }
@@ -331,7 +422,10 @@ type
     property DefaultRowHeight;
     property FixedCols;
     property FixedRows;
+    property Options;
     property RowCount;
+
+    property OnSelection;
   end;
 
 implementation
@@ -415,7 +509,7 @@ begin
   fColCount := aValue;
 
   SetLength(fColArr, fColCount);
-  SetLength(fCellArr, fRowCount, fRowCount);
+  SetLength(fCellArr, fColCount, fRowCount);
 end;
 
 function TVirtualGrid.GetCells(aCol, aRow: Integer): TCellProps;
@@ -453,7 +547,7 @@ begin
   fRowCount := aValue;
 
   SetLength(fRowArr, fRowCount);
-  SetLength(fCellArr, fRowCount, fRowCount);
+  SetLength(fCellArr, fColCount, fRowCount);
 end;
 
 procedure TVirtualGrid.SetRows(aRow: Integer; aValue: TColRowProps);
@@ -779,20 +873,74 @@ procedure TCustomGrid.AdjustGrid(aIsColumn: Boolean; aOld, aNew: Integer);
   end;
 
 var
-  oldcount: Integer;
+  oldcount, newcount: Integer;
 begin
   if aIsColumn then begin
     AdjustList(fCols, aNew);
+    fGCache.AccumWidth.Count := aNew;
 
     oldcount := RowCount;
+    if (aOld = 0) and (aNew >= 0) then begin
+      fTopLeft.X := fFixedCols;
+      if RowCount = 0 then begin
+        newcount := 1;
+        fTopLeft.Y := fFixedRows;
+        AdjustList(fRows, newcount);
+        fGCache.AccumHeight.Count := newcount;
+      end;
+    end;
 
+    UpdateCachedSizes;
     SizeChanged(aOld, oldcount);
+
+    { if new count makes current Col out of range, adjust position if not,
+       position should not change (fake changed col to be the last one) }
+    Dec(aNew);
+    if aNew < Col then
+      aNew := Col;
+    FixPosition(True, aNew);
   end else begin
     AdjustList(fRows, aNew);
+    fGCache.AccumHeight.Count := aNew;
 
     oldcount := ColCount;
+    if (aOld = 0) and (aNew >= 0) then begin
+      fTopLeft.Y := fFixedRows;
+      if ColCount = 0 then begin
+        newcount := 1;
+        fTopLeft.X := fFixedCols;
+        AdjustList(fCols, newcount);
+        fGCache.AccumWidth.Count := newcount;
+      end;
+    end;
 
+    UpdateCachedSizes;
     SizeChanged(oldcount, aOld);
+
+    { if new count makes current Row out of range, adjust position if not,
+      position should not change (fake changed row to be the last one) }
+    Dec(aNew);
+    if aNew < Row then
+      aNew := Row;
+    FixPosition(False, aNew);
+  end;
+end;
+
+procedure TCustomGrid.CheckCount(aNewColCount, aNewRowCount: Integer);
+var
+  newcol, newrow: Integer;
+begin
+  if Col >= aNewColCount then
+    newcol := aNewColCount - 1
+  else
+    newcol := Col;
+  if Row >= aNewRowCount then
+    newrow := aNewRowCount - 1
+  else
+    newrow := Row;
+  if (newcol >= 0) and (newrow >= 0) and ((newcol <> Col) or (newrow <> Row)) then begin
+    if (aNewColCount <> fFixedCols) and (aNewRowCount <> fFixedRows) then
+      MoveNextSelectable(False, NewCol, NewRow);
   end;
 end;
 
@@ -828,6 +976,25 @@ begin
   VisualChange;
 end;
 
+procedure TCustomGrid.FixPosition(aIsColumn: Boolean; aIndex: Integer);
+
+  procedure FixSelection;
+  begin
+    if fRow > fRows.Count - 1 then
+      fRow := fRows.Count - 1
+    else if (fRow < FixedRows) and (FixedRows < fRows.Count) then
+      fRow := FixedRows;
+    if fCol > fCols.Count - 1 then
+      fCol := fCols.Count - 1
+    else if (fCol < FixedCols) and (FixedCols < fCols.Count) then
+      fCol := FixedCols;
+  end;
+
+begin
+  FixSelection;
+  VisualChange;
+end;
+
 function TCustomGrid.GetColCount: Integer;
 begin
   Result := fCols.Count;
@@ -838,7 +1005,7 @@ begin
   Result := fColumns;
 end;
 
-function TCustomGrid.GetColWidth(aCol: Integer): Integer;
+function TCustomGrid.GetColWidths(aCol: Integer): Integer;
 begin
   if IsColumnIndexValid(aCol) then
     Result := FCols[aCol]
@@ -890,9 +1057,37 @@ begin
     Result := DefaultRowHeight;
 end;
 
+function TCustomGrid.GetSelectedColor: TColor;
+begin
+  Result := fSelectedColor;
+end;
+
+procedure TCustomGrid.HeadersMouseMove(const aX, aY: Integer);
+var
+  gz: TGridZone;
+begin
+  gz := MouseToGridZone(aX, aY);
+
+  fGCache.HotGridZone := gz;
+end;
+
 function TCustomGrid.IsColumnsStored: Boolean;
 begin
   Result := Columns.Enabled;
+end;
+
+procedure TCustomGrid.ResetHotCell;
+begin
+  with FGCache do begin
+    HotGridZone := gzInvalid;
+  end;
+end;
+
+function TCustomGrid.ScrollToCell(const aCol, aRow: Integer;
+  const aForceFullyVisible: Boolean): Boolean;
+begin
+  { ToDo }
+  Result := False;
 end;
 
 procedure TCustomGrid.SetBorderColor(aValue: TColor);
@@ -913,11 +1108,21 @@ begin
   UpdateBorderStyle;
 end;
 
+procedure TCustomGrid.SetCol(aValue: Integer);
+begin
+  if fCol = aValue then
+    Exit;
+  MoveExtend(False, aValue, fRow, True);
+  Click;
+  Changed;
+end;
+
 procedure TCustomGrid.SetColCount(aValue: Integer);
 begin
   if Columns.Enabled then
     raise EGridException.Create('Use Columns property to add/remove columns');
   InternalSetColCount(AValue);
+  Changed;
 end;
 
 procedure TCustomGrid.SetColumns(aValue: TGridColumns);
@@ -925,7 +1130,7 @@ begin
   fColumns.Assign(aValue);
 end;
 
-procedure TCustomGrid.SetColWidth(aCol: Integer; aValue: Integer);
+procedure TCustomGrid.SetColWidths(aCol: Integer; aValue: Integer);
 begin
   if not IsColumnIndexValid(aCol) then
     Exit;
@@ -996,6 +1201,8 @@ begin
     if not (csLoading in ComponentState) then
       DoTopLeftChanged;
   end;
+
+  UpdateCachedSizes;
 end;
 
 procedure TCustomGrid.SetFixedGridLineColor(AValue: TColor);
@@ -1019,6 +1226,8 @@ begin
 
   if not (csLoading in ComponentState) then
     DoTopLeftChanged;
+
+  UpdateCachedSizes;
 end;
 
 procedure TCustomGrid.SetFlat(aValue: Boolean);
@@ -1053,6 +1262,23 @@ begin
   Invalidate;
 end;
 
+procedure TCustomGrid.SetOptions(aValue: TGridOptions);
+begin
+  if fOptions = aValue then
+    Exit;
+  fOptions := aValue;
+  Changed;
+end;
+
+procedure TCustomGrid.SetRow(aValue: Integer);
+begin
+  if fRow = aValue then
+    Exit;
+  MoveExtend(False, fCol, aValue, True);
+  Changed;
+  Click;
+end;
+
 procedure TCustomGrid.SetRowCount(aValue: Integer);
 var
   old: Integer;
@@ -1065,9 +1291,13 @@ begin
     if EditorMode and (aValue < old) then
       EditorMode := False;
 
+    CheckFixed(ColCount, aValue, fFixedCols, fFixedRows);
+    CheckCount(ColCount, aValue);
     AdjustGrid(False, old, aValue);
   end else
     ClearRows;
+
+  Changed;
 end;
 
 procedure TCustomGrid.SetRowHeights(aRow: Integer; aValue: Integer);
@@ -1093,9 +1323,76 @@ begin
   Changed;
 end;
 
-function TCustomGrid.GetCells(aCol, aRow: Integer): String;
+procedure TCustomGrid.SetSelectedColor(aValue: TColor);
 begin
-  Result := '';
+  if fSelectedColor = aValue then
+    Exit;
+  fSelectedColor := aValue;
+  Changed;
+end;
+
+procedure TCustomGrid.UpdateCachedSizes;
+var
+  i: Integer;
+begin
+  fGCache.GridWidth := 0;
+  fGCache.GridHeight := 0;
+  fGCache.FixedWidth := 0;
+  fGCache.FixedHeight := 0;
+
+  for i := 0 to ColCount - 1 do begin
+    fGCache.AccumWidth[i] := fGCache.GridWidth;
+    fGCache.GridWidth := fGCache.GridWidth + GetColWidths(i);
+    if i < FixedCols then
+      fGCache.FixedWidth := fGCache.GridWidth;
+  end;
+
+  for i := 0 to RowCount - 1 do begin
+    fGCache.AccumHeight[i] := fGCache.GridHeight;
+    fGCache.GridHeight := fGCache.GridHeight + GetRowHeights(i);
+    if i < FixedRows then
+      fGCache.FixedHeight := fGCache.GridHeight;
+  end;
+
+{$ifdef DEBUG_GRID}
+  Writeln('Cached Grid Information: ');
+  Writeln('GridWidth: ', fGCache.GridWidth);
+  Writeln('GridHeight: ', fGCache.GridHeight);
+  Writeln('FixedWidth: ', fGCache.FixedWidth);
+  Writeln('FixedHeight: ', fGCache.FixedHeight);
+  Writeln('AccumWidth: ', fGCache.AccumWidth.Count);
+  for i := 0 to ColCount - 1 do
+    Writeln('   ', i, ': ', fGCache.AccumWidth[i]);
+  Writeln('AccumHeight: ', fGCache.AccumHeight.Count);
+  for i := 0 to RowCount - 1 do
+    Writeln('   ', i, ': ', fGCache.AccumHeight[i]);
+{$endif}
+end;
+
+procedure TCustomGrid.AfterMoveSelection(const aPrevCol, aPrevRow: Integer);
+begin
+  if Assigned(fOnAfterSelection) then
+    fOnAfterSelection(Self, aPrevCol, aPrevRow);
+end;
+
+procedure TCustomGrid.BeforeMoveSelection(const aCol, aRow: Integer);
+begin
+  if Assigned(fOnBeforeSelection) then
+    fOnBeforeSelection(Self, aCol, aRow);
+end;
+
+procedure TCustomGrid.CacheMouseDown(aX, aY: Integer);
+begin
+  fGCache.ClickMouse := Point(aX, aY);
+  fGCache.ClickCell := MouseToCell(fGCache.ClickMouse);
+  if fGCache.HotGridZone = gzInvalid then
+    fGCache.HotGridZone := CellToGridZone(fGCache.ClickCell.X, fGCache.ClickCell.Y);
+end;
+
+procedure TCustomGrid.CellClick(const aCol, aRow: Integer;
+  const aButton: TMouseButton);
+begin
+  { empty }
 end;
 
 procedure TCustomGrid.Changed;
@@ -1157,6 +1454,11 @@ procedure TCustomGrid.Changed;
     w := fCols[aCol];
     if w < 0 then
       w := DefaultColWidth;
+    { respect border width }
+    if w > 0 then
+      Dec(w);
+    if (w > 0) and (aCol = 0) then
+      Dec(w);
 
     if w < 0 then
       content.style.removeProperty('width')
@@ -1166,19 +1468,30 @@ procedure TCustomGrid.Changed;
     h := fRows[aRow];
     if h < 0 then
       h := DefaultRowHeight;
+    { respect border width }
+    if h > 0 then
+      Dec(h);
+    if (h > 0) and (aRow = 0) then
+      Dec(h);
 
     if h < 0 then begin
       content.style.removeProperty('height');
       content.style.removeProperty('line-height');
     end else begin
       content.style.setProperty('height', IntToStr(h) + 'px');
-      content.style.setProperty('line-height', IntToSTr(h) + 'px');
+      content.style.setProperty('line-height', IntToStr(h) + 'px');
     end;
 
     style := aCell.style;
 
     style.SetProperty('white-space', 'nowrap');
     style.SetProperty('overflow', 'hidden');
+
+    if (fSelectedColor <> clNone) and GetIsCellSelected(aCol, aRow) and
+       (aCol >= fFixedCols) and (aRow >= fFixedRows) then
+      content.style.setProperty('background-color', JSColor(fSelectedColor))
+    else
+      content.style.removeProperty('background-color');
 
     content.style.setProperty('text-align', AlignmentToCSSAlignment(alignment));
     { does not yet work :/ }
@@ -1251,11 +1564,15 @@ begin
     container.style.setProperty('border-width', '1px');
   end;
 
+  { ensure that a new stacking context for the z-index is opened }
+  container.style.SetProperty('opacity', '0.99');
+
   if not Assigned(fContentTable) then begin
     fContentTable := TJSHTMLTableElement(document.createElement('table'));
     fContentTable.style.setProperty('position', 'relative');
     fContentTable.style.setProperty('z-index', '1');
     fContentTable.cellSpacing := '0px';
+    fContentTable.cellPadding := '0px';
 
     { always add the content table }
     container.appendChild(fContentTable);
@@ -1268,6 +1585,7 @@ begin
     fFixedColsTable.style.setProperty('left', '0px');
     fFixedColsTable.style.setProperty('top', '0px');
     fFixedColsTable.cellSpacing := '0px';
+    fFixedColsTable.cellPadding := '0px';
   end;
 
   if not Assigned(fFixedRowsTable) then begin
@@ -1277,6 +1595,7 @@ begin
     fFixedRowsTable.style.setProperty('left', '0px');
     fFixedRowsTable.style.setProperty('top', '0px');
     fFixedRowsTable.cellSpacing := '0px';
+    fFixedRowsTable.cellPadding := '0px';
   end;
 
   if not Assigned(fFixedTopLeftTable) then begin
@@ -1286,6 +1605,7 @@ begin
     fFixedTopLeftTable.style.setProperty('left', '0px');
     fFixedTopLeftTable.style.setProperty('top', '0px');
     fFixedTopLeftTable.cellSpacing := '0px';
+    fFixedTopLeftTable.cellPadding := '0px';
   end;
 
   AppendOrRemoveNode(container, fFixedRowsTable, FixedRows > 0);
@@ -1347,6 +1667,19 @@ begin
       end;
     end;
   end;
+end;
+
+procedure TCustomGrid.CheckLimits(var aCol, aRow: Integer);
+begin
+  if aCol < fFixedCols then
+    aCol := fFixedCols
+  else if aCol > ColCount - 1 then
+    aCol := ColCount - 1;
+
+  if aRow < fFixedRows then
+    aRow := fFixedRows
+  else if aRow > RowCount - 1 then
+    aRow := RowCount - 1;
 end;
 
 function TCustomGrid.ColumnFromGridColumn(aColumn: Integer): TGridColumn;
@@ -1419,9 +1752,25 @@ begin
   Result := FixedCols;
 end;
 
+function TCustomGrid.FixedGrid: Boolean;
+begin
+  Result := (FixedCols = ColCount) or (FixedRows = RowCount);
+end;
+
+function TCustomGrid.GetCells(aCol, aRow: Integer): String;
+begin
+  Result := '';
+end;
+
 function TCustomGrid.GetDefaultRowHeight: Integer;
 begin
   Result := Font.TextHeight('Xy') + 7;
+end;
+
+function TCustomGrid.GetIsCellSelected(aCol, aRow: Integer): Boolean;
+begin
+  Result := (fRange.Left <= aCol) and (aCol <= fRange.Right) and
+            (fRange.Top <= aRow) and (aRow <= fRange.Bottom);
 end;
 
 function TCustomGrid.GridColumnFromColumnIndex(aColumnIndex: Integer): Integer;
@@ -1447,6 +1796,7 @@ begin
       EditorMode := False;
 
     CheckFixed(aCount, RowCount, FixedCols, FixedRows);
+    CheckCount(aCount, RowCount);
     AdjustGrid(True, old, aCount);
   end;
 end;
@@ -1476,9 +1826,275 @@ begin
   Result := (aIndex >= fFixedRows) and (aIndex < RowCount);
 end;
 
+procedure TCustomGrid.MouseDown(aButton: TMouseButton; aShift: TShiftState; aX,
+  aY: integer);
+begin
+  inherited MouseDown(aButton, aShift, aX, aY);
+
+  if csDesigning in ComponentState then
+    Exit;
+
+  if not Focused then begin
+    SetFocus;
+    if not Focused then
+      Exit;
+  end;
+
+  CacheMouseDown(aX, aY);
+
+  case fGCache.HotGridZone of
+    gzNormal: begin
+      if not FixedGrid then begin
+        fGridState := gsSelecting;
+
+        if not MoveExtend(False, fGCache.ClickCell.x, fGCache.ClickCell.y, False) then begin
+          MoveSelection;
+        end else
+          fGridState := gsSelecting;
+
+        Changed;
+      end;
+    end;
+    { ToDo }
+    gzFixedCols: ;
+    gzFixedRows: ;
+    gzFixedCells: ;
+  end;
+end;
+
+procedure TCustomGrid.MouseMove(aShift: TShiftState; aX, aY: integer);
+var
+  cell: TGridCoord;
+begin
+  inherited MouseMove(aShift, aX, aY);
+
+  HeadersMouseMove(aX, aY);
+end;
+
+procedure TCustomGrid.MouseUp(aButton: TMouseButton; aShift: TShiftState; aX,
+  aY: integer);
+var
+  cur: TGridCoord;
+  gz: TGridZone;
+
+  function IsValidCellClick: Boolean;
+  begin
+    Result := (Cur.X = fGCache.ClickCell.X) and (Cur.Y = fGCache.ClickCell.Y) and (gz <> gzInvalid);
+  end;
+
+begin
+  inherited MouseUp(aButton, aShift, aX, aY);
+
+  cur := MouseToCell(Point(aX, aY));
+  gz := CellToGridZone(cur.x, cur.y);
+
+  case fGridState of
+    gsNormal: begin
+      if not FixedGrid and IsValidCellClick then begin
+        CellClick(cur.x, cur.y, aButton);
+      end;
+    end;
+    gsSelecting: begin
+      CellClick(cur.x, cur.y, aButton);
+    end;
+    { ToDo }
+    gsRowSizing: ;
+    gsColSizing: ;
+    gsRowMoving: ;
+    gsColMoving: ;
+    gsHeaderClicking: ;
+    gsButtonColumnClicking: ;
+  end;
+end;
+
+function TCustomGrid.MoveExtend(aRelative: Boolean; aCol, aRow: Integer;
+  aForceFullyVisible: Boolean): Boolean;
+var
+  oldrange: TGridRect;
+  prevrow, prevcol: Integer;
+begin
+  Result := TryMoveSelection(aRelative, aCol, aRow);
+  if not Result then
+    Exit;
+
+  BeforeMoveSelection(aCol, aRow);
+
+  oldrange := fRange;
+  prevrow := fRow;
+  prevcol := fCol;
+
+  if goRowSelect in Options then
+    fRange := Rect(fFixedCols, aRow, ColCount - 1, aRow)
+  else
+    fRange := Rect(aCol, aRow, aCol, aRow);
+
+  {if not }ScrollToCell(aCol, aRow, aForceFullyVisible){ then
+    InvalidateMovement(aCol, aRow, oldrange)};
+
+  //Writeln('New selection: ', fCol, ' ', fRow);
+  fCol := aCol;
+  fRow := aRow;
+
+  MoveSelection;
+
+  AfterMoveSelection(prevcol, prevrow);
+end;
+
+function TCustomGrid.MoveNextSelectable(aRelative: Boolean; aDCol,
+  aDRow: Integer): Boolean;
+var
+  cinc, rinc: Integer;
+  ncol, nrow: Integer;
+begin
+  { Reference }
+  if not aRelative then begin
+    ncol := aDCol;
+    nrow := aDRow;
+    aDCol := ncol - fCol;
+    aDRow := nrow - fRow;
+  end else begin
+    ncol := fCol + aDCol;
+    nrow := fRow + aDRow;
+  end;
+
+  CheckLimits(ncol, nrow);
+
+  { Increment }
+  if aDCol < 0 then
+    cinc := -1
+  else if aDCol > 0 then
+    cinc := 1
+  else
+    cinc := 0;
+  if aDRow < 0 then
+    rinc := -1
+  else if aDRow > 0 then
+    rinc := 1
+  else
+    rinc := 0;
+
+  { Calculate }
+  Result := False;
+  while ((ColWidths[ncol] = 0) and (cinc <> 0))
+     or ((RowHeights[nrow] = 0) and (rinc <> 0)) do
+  begin
+    if not (IsRowIndexVariable(nrow + rinc) and IsColumnIndexVariable(ncol + cinc)) then
+      Exit;
+    Inc(ncol, cinc);
+    Inc(nrow, rinc);
+  end;
+  Result := MoveExtend(False, ncol, nrow, True);
+end;
+
+procedure TCustomGrid.MoveSelection;
+begin
+  if Assigned(fOnSelection) then
+    fOnSelection(Self, fCol, fRow);
+end;
+
+function TCustomGrid.OffsetToColRow(aIsCol, aFisical: Boolean;
+  aOffset: Integer; out aIndex, aRest: Integer): Boolean;
+begin
+  aIndex := 0;
+  aRest := 0;
+  Result := False;
+  //aOffset := aOffset - GetBorderWidth;
+  if aOffset < 0 then
+    Exit;
+
+  if aIsCol then begin
+    if aFisical and (aOffset > fGCache.FixedWidth - 1) then begin
+      aIndex := fTopLeft.X;
+      if IsColumnIndexValid(aIndex) then begin
+        aOffset := aOffset - fGCache.FixedWidth + fGCache.AccumWidth[aIndex];
+      end;
+      if not IsColumnIndexValid(aIndex) or (aOffset > fGCache.GridWidth - 1) then begin
+        if AllowOutboundEvents then
+          aIndex := ColCount - 1
+        else
+          aIndex := -1;
+        Exit;
+      end;
+    end;
+
+    while aOffset > fGCache.AccumWidth[aIndex] + GetColWidths(aIndex) - 1 do begin
+      Inc(aIndex);
+      if not IsColumnIndexValid(aIndex) then begin
+        if AllowOutBoundEvents then
+          aIndex := ColCount - 1
+        else
+          aIndex := -1;
+        Exit;
+      end;
+    end;
+
+    aRest := aOffset;
+    if aIndex <> 0 then
+      aRest := aOffset - fGCache.AccumWidth[aIndex];
+  end else begin
+    if aFisical and (aOffset > fGCache.FixedHeight - 1) then begin
+      aIndex := fTopLeft.Y;
+      if IsRowIndexValid(aIndex) then begin
+        aOffset := aOffset - fGCache.FixedHeight + fGCache.AccumHeight[aIndex];
+      end;
+      if not IsRowIndexValid(aIndex) or (aOffset > fGCache.GridHeight - 1) then begin
+        if AllowOutboundEvents then
+          aIndex := RowCount - 1
+        else
+          aIndex := -1;
+        Exit;
+      end;
+    end;
+
+    while aOffset > fGCache.AccumHeight[aIndex] + GetRowHeights(aIndex) - 1 do begin
+      Inc(aIndex);
+      if not IsRowIndexValid(aIndex) then begin
+        if AllowOutBoundEvents then
+          aIndex := RowCount - 1
+        else
+          aIndex := -1;
+        Exit;
+      end;
+    end;
+
+    aRest := aOffset;
+    if aIndex <> 0 then
+      aRest := aOffset - fGCache.AccumHeight[aIndex];
+  end;
+
+  Result := True;
+end;
+
+function TCustomGrid.SelectCell(aCol, aRow: Integer): Boolean;
+begin
+  Result := (ColWidths[aCol] > 0) and (RowHeights[aRow] > 0);
+end;
+
 procedure TCustomGrid.SizeChanged(aOldColCount, aOldRowCount: Integer);
 begin
   { empty }
+end;
+
+function TCustomGrid.TryMoveSelection(aRelative: Boolean; var aCol,
+  aRow: Integer): Boolean;
+begin
+  Result := False;
+
+  if FixedGrid then
+    Exit;
+
+  if aRelative then begin
+    Inc(aCol, fCol);
+    Inc(aRow, fRow);
+  end;
+
+  CheckLimits(aCol, aRow);
+
+  // Change on Focused cell?
+  if (aCol = fCol) and (aRow = fRow) then
+    SelectCell(aCol, aRow)
+  else
+    Result := SelectCell(aCol, aRow);
 end;
 
 procedure TCustomGrid.TopLeftChanged;
@@ -1513,6 +2129,9 @@ end;
 
 constructor TCustomGrid.Create(aOwner: TComponent);
 begin
+  fGCache.AccumWidth := TIntegerList.Create;
+  fGCache.AccumHeight := TIntegerList.Create;
+  fGCache.ClickCell := point(-1, -1);
   inherited Create(aOwner);
   fTopLeft := Point(1, 1);
   fCols := TIntegerList.Create;
@@ -1521,6 +2140,7 @@ begin
 
   fDefColWidth := -1;
   fDefRowHeight := -1;
+  fAllowOutboundEvents := True;
 
   fScrollBars := ssAutoBoth;
 
@@ -1531,9 +2151,17 @@ begin
   fFixedGridLineColor := cl3DDkShadow;
   fBorderColor := cl3DDkShadow;
 
+  fOptions := DefaultGridOptions;
+  fGridState := gsNormal;
+
   fFlat := False;
   fGridBorderStyle := bsSingle;
   UpdateBorderStyle;
+
+  fRange := Rect(-1, -1, -1, -1);
+  fSelectedColor := clHighlight;
+
+  ResetHotCell;
 
   ColCount := 5;
   RowCount := 5;
@@ -1546,7 +2174,27 @@ begin
   fColumns.Free;
   fCols.Free;
   fRows.Free;
+  fGCache.AccumHeight.Free;
+  fGCache.AccumWidth.Free;
   inherited Destroy;
+end;
+
+function TCustomGrid.CellToGridZone(aCol, aRow: Integer): TGridZone;
+begin
+  if (aCol < 0) or (aRow < 0) then
+    Result := gzInvalid
+  else if aCol < FFixedCols then
+    if aRow < FFixedRows then
+      Result := gzFixedCells
+    else
+      Result := gzFixedRows
+  else if aRow < FFixedRows then
+    if aCol < FFixedCols then
+      Result := gzFixedCells
+    else
+      Result := gzFixedCols
+  else
+    Result := gzNormal;
 end;
 
 procedure TCustomGrid.Clear;
@@ -1557,6 +2205,8 @@ begin
   colschanged := ClearCols;
   if not (rowschanged or colschanged) then
     Exit;
+  fRange := Rect(-1, -1, -1, -1);
+  ResetHotCell;
   Changed;
 end;
 
@@ -1583,6 +2233,63 @@ end;
 procedure TCustomGrid.InvalidateCell(aCol, aRow: Integer);
 begin
   InvalidateCell(aCol, aRow, True);
+end;
+
+procedure TCustomGrid.MouseToCell(aX, aY: Integer; out aCol, aRow: Integer);
+var
+  dummy: Integer;
+begin
+  OffsetToColRow(True, True, aX + HandleElement.scrollLeft, aCol, dummy);
+  if aCol < 0 then
+    aRow := -1
+  else begin
+    OffsetToColRow(False, True, aY + HandleElement.scrollTop, aRow, dummy);
+    if aRow < 0 then
+      aCol := -1;
+  end;
+end;
+
+function TCustomGrid.MouseToCell(const aMouse: TPoint): TGridCoord;
+begin
+  MouseToCell(aMouse.X, aMouse.Y, Result.X, Result.Y);
+end;
+
+function TCustomGrid.MouseToGridZone(aX, aY: Integer): TGridZone;
+var
+  bw, r, c: Integer;
+begin
+  bw := 0;
+  if aX < fGCache.FixedWidth + bw then begin
+    { in fixed width zone }
+    if aY < fGCache.FixedHeight + bw then
+      Result := gzFixedCells
+    else begin
+      OffsetToColRow(False, True, aY, r, c);
+      if (r < 0) or (RowCount <= FixedRows) then
+        Result := gzInvalid
+      else
+        Result := gzFixedRows;
+    end;
+  end else if aY < fGCache.FixedHeight + bw then begin
+    { in fixed height zone }
+    if aX < fGCache.FixedWidth + bw then
+      Result := gzFixedCells
+    else begin
+      OffsetToColRow(True, True, aX, r, c);
+      if (c < 0) or (ColCount <= FixedCols) then
+        Result := gzInvalid
+      else
+        Result := gzFixedCols;
+    end;
+  end else if not FixedGrid then begin
+    { in normal cell zone }
+    MouseToCell(aX, aY, c, r);
+    if (c < 0) or (r < 0) then
+      Result := gzInvalid
+    else
+      Result := gzNormal;
+  end else
+    Result := gzInvalid;
 end;
 
 end.
