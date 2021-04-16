@@ -46,7 +46,6 @@ type
   private
     FPas2JSBuilder: string;
     FPas2JSJSON: string;
-    function GetOptions: TModalResult;
   public
     constructor Create; override;
     function GetLocalizedName: string; override;
@@ -108,68 +107,22 @@ uses
 
 { TPas2JSProject }
 
-function TPas2JSProject.GetOptions: TModalResult;
-
-  function ExtractConfig(AOptionsForm: TOptionsForm): string;
-  var
-    VJSONObject: TJSONObject;
-    VJSONArray: TJSONArray;
-    VIndex: NativeInt;
-  begin
-    VJSONObject := TJSONObject.Create([]);
-    try
-      VJSONObject.Add('Compiler', AOptionsForm.CompilerEdit.Text);
-      VJSONObject.Add('Output', AOptionsForm.OutputEdit.Text);
-      VJSONObject.Add('Template', AOptionsForm.TemplateEdit.Text);
-      VJSONObject.Add('Browser', AOptionsForm.BrowserEdit.Text);
-      VJSONArray := TJSONArray.Create([]);
-      VJSONArray.Add('-Jirtl.js');
-      VJSONArray.Add('-Tbrowser');
-      VJSONArray.Add('-MDelphi');
-      VJSONArray.Add('-Jc');
-      for VIndex := 0 to (AOptionsForm.CustomOptionsMemo.Lines.Count - 1) do
-      begin
-        VJSONArray.Add(AOptionsForm.CustomOptionsMemo.Lines[VIndex]);
-      end;
-      VJSONObject.Add('CustomOptions', VJSONArray);
-      Result := VJSONObject.FormatJSON();
-    finally
-      FreeAndNil(VJSONObject);
-    end;
-  end;
-
-var
-  VOptionsForm: TOptionsForm;
-begin
-  VOptionsForm := TOptionsForm.Create(Application);
-  try
-    Result := VOptionsForm.ShowModal;
-    if (Result = mrOk) then
-    begin
-      FPas2JSBuilder := VOptionsForm.BuilderEdit.Text;
-      FPas2JSJSON := ExtractConfig(VOptionsForm);
-    end;
-  finally
-    FreeAndNil(VOptionsForm);
-  end;
-end;
-
 constructor TPas2JSProject.Create;
 begin
   inherited Create;
   FPas2JSBuilder := '';
   FPas2JSJSON := '';
-  Name := 'Application (Pas2JS)';
+  Name := 'Web GUI Application (Pas2JS)';
 end;
 
 function TPas2JSProject.GetLocalizedName: string;
 begin
-  Result := 'Application (Pas2JS)';
+  Result := 'Web GUI Application (Pas2JS)';
 end;
 
 function TPas2JSProject.GetLocalizedDescription: string;
 begin
-  Result := 'Create a Pas2JS application';
+  Result := 'Create a Pas2JS Web GUI application';
 end;
 
 function TPas2JSProject.InitProject(AProject: TLazProject): TModalResult;
@@ -200,25 +153,58 @@ function TPas2JSProject.InitProject(AProject: TLazProject): TModalResult;
     Result.SetSourceText(Source, True);
   end;
 
+  function HTMLFile: TLazProjectFile;
+  const
+    TemplateHTMLSource =
+         '<!doctype html>'+LineEnding
+        +'<html lang="en">'+LineEnding
+        +'<head>'+LineEnding
+        +'  <meta http-equiv="Content-type" content="text/html; charset=utf-8">'+LineEnding
+        +'  <meta name="viewport" content="width=device-width, initial-scale=1">'+LineEnding
+        +'  <title>Project1</title>'+LineEnding
+        +'  <script src="project1.js"></script>'+LineEnding
+        +'</head>'+LineEnding
+        +'<body>'+LineEnding
+        +'  <script>'+LineEnding
+        +'    rtl.run();'+LineEnding
+        +'  </script>'+LineEnding
+        +'</body>'+LineEnding
+        +'</html>'+LineEnding;
+  begin
+    Result := AProject.CreateProjectFile('project1.html');
+    Result.IsPartOfProject := True;
+    AProject.CustomData.Values['PasJSHTMLFile'] := Result.Filename;
+    AProject.CustomData['PasJSWebBrowserProject'] := '1';
+    Result.CustomData['PasJSIsProjectHTMLFile'] := '1';
+    Result.CustomData.Values['MaintainHTML'] := '1';
+    Result.SetSourceText(TemplateHTMLSource);
+
+  end;
+
+var
+  CompOpts: TLazCompilerOptions;
 begin
   Result := inherited InitProject(AProject);
-  Result := GetOptions;
-  if (Result <> mrOk) then
-  begin
-    Exit;
-  end;
   AProject.AddFile(Project, False);
+  AProject.AddFile(HTMLFile, True);
+
   AProject.AddPackageDependency('pas2js_rtl');
-  AProject.AddPackageDependency('pas2js_widget');
+  AProject.AddPackageDependency('WCL');
   AProject.Flags := AProject.Flags - [pfRunnable];
   AProject.LoadDefaultIcon;
   AProject.MainFileID := 0;
-  AProject.LazCompilerOptions.SetAlternativeCompile(FPas2JSBuilder + ' ' + '$(ProjFile)', False);
+//  AProject.LazCompilerOptions.SetAlternativeCompile(FPas2JSBuilder + ' ' + '$(ProjFile)', False);
   AProject.LazCompilerOptions.TargetFilename := 'project1';
+  CompOpts := AProject.LazCompilerOptions;
+  CompOpts.TargetOS:='Browser';
+  CompOpts.GenerateDebugInfo := False;
+  CompOpts.CompilerPath := '$(pas2js)';
+  CompOpts.CustomOptions := '-Jeutf-8 -Jirtl.js -Jc -Jminclude -JRjs';
 end;
 
 function TPas2JSProject.CreateStartFiles(AProject: TLazProject): TModalResult;
 begin
+  LazarusIDE.DoOpenEditorFile('project1.html', -1, -1, [ofProjectLoading,ofRegularFile]);
   LazarusIDE.DoNewEditorFile(VPas2JSWForm, '', '', [nfIsPartOfProject, nfOpenInEditor, nfCreateDefaultSrc]);
   Result := mrOk;
 end;
