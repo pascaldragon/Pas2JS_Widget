@@ -5,7 +5,7 @@ Web Component Library (formerly Pas2JS Widgetset) is a RAD Framework to develop 
 This project is only possible thanks to [Free Pascal](https://www.freepascal.org/ "Free Pascal"), [Lazarus](https://www.lazarus-ide.org/ "Lazarus") and the fabulous compiler [Pas2JS](http://wiki.freepascal.org/pas2js "Pas2JS")
 
 ### Requirements
-* Lazarus 2.0.10 or newer
+* Lazarus 2.1.0 or newer
 * _pas2js_ 2.0 or newer
 
 ### Help Please
