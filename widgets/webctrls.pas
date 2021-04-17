@@ -868,7 +868,7 @@ end;
 
 procedure TWTimeEditBox.RealSetText(const AValue: string);
 begin
-  inherited RealSetText(FormatDateTime(ShortTimeFormat, StrToTimeDef(AValue, 0, FormatSettings)));
+  inherited RealSetText(FormatDateTime(ShortTimeFormat, StrToTimeDef(AValue, 0, FormatSettings.DateSeparator)));
 end;
 
 end.
