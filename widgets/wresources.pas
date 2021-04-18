@@ -25,6 +25,7 @@ uses
 
 function InitResourceComponent(Instance: TComponent;
   RootAncestor: TClass):Boolean;
+function ConvertForm(AData: string): string;
 
 implementation
 
@@ -57,6 +58,7 @@ function InitResourceComponent(Instance: TComponent; RootAncestor: TClass
       Exit;
 
     data := window.atob(info.data);
+    data := ConvertForm(data);
     if data <> '' then
       Stream := TStringStream.Create(data);
 
@@ -104,6 +106,63 @@ begin
     finally
       //EndGlobalLoading;
     end;
+end;
+
+function ConvertForm(AData: string): string;
+
+  function StrCursorToNumber(AValue: string): string;
+  begin
+    case AValue of
+      'crDefault': Result := '0';
+      'crNone': Result := '-1';
+      'crCross': Result := '-3';
+      'crIBeam': Result := '-4';
+      'crSize': Result := '-22';
+      'crSizeNESW': Result := '-6';
+      'crSizeNS': Result := '-7';
+      'crSizeNWSE': Result := '-8';
+      'crSizeWE': Result := '-9';
+      'crSizeNW': Result := '-23';
+      'crSizeN': Result := '-24';
+      'crSizeNE': Result := '-25';
+      'crSizeW': Result := '-26';
+      'crSizeE': Result := '-27';
+      'crSizeSW': Result := '-28';
+      'crSizeS': Result := '-29';
+      'crSizeSE': Result := '-30';
+      'crHourGlass': Result := '-11';
+      'crNoDrop': Result := '-13';
+      'crHSplit': Result := '-14';
+      'crVSplit': Result := '-15';
+      'crSQLWait': Result := '-17';
+      'crNo': Result := '-18';
+      'crAppStart': Result := '-19';
+      'crHelp': Result := '-20';
+      'crHandPoint': Result := '-21';
+    else
+      Result := '0';
+    end;
+  end;
+
+var
+  strList: TStringList;
+  i: integer;
+  str: string;
+begin
+  strList := TStringList.Create;
+  try
+    strList.Text := AData;
+    for i := 0 to strList.Count - 1 do
+      if Pos('Cursor = ', strList[i]) > 0 then
+      begin
+        str := trim(copy(strList[i], Pos('Cursor = ', strList[i]) + 8, Length(strList[i])));
+        strList[i] := StringReplace(strList[i], str, StrCursorToNumber(str), [rfReplaceAll]);
+      end;
+    str := strList.Text;
+  finally
+    strList.Free;
+  end;
+  Result := str;
 end;
 
 initialization
