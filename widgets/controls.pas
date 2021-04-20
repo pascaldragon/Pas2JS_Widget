@@ -473,6 +473,10 @@ function ExtractMouseButton(const AEvent: TJSMouseEvent): TMouseButton;
 
 function JSCursor(const ACursor: TCursor): string;
 
+function CursorToIdent(Cursor: Longint; out Ident: string): Boolean;
+function IdentToCursor(const Ident: string; out Cursor: Longint): Boolean;
+
+
 implementation
 
 uses
@@ -863,6 +867,53 @@ begin
     else
       Result := '';
   end;
+end;
+
+const
+
+  Cursors: Array [0..29] of TIdentMapEntry = (
+    // defined cursors
+    (Value: crDefault; Name: 'crDefault'),
+    (Value: crNone; Name: 'crNone'),
+    (Value: crArrow; Name: 'crArrow'),
+    (Value: crCross; Name: 'crCross'),
+    (Value: crIBeam; Name: 'crIBeam'),
+    (Value: crSize; Name: 'crSize'),
+    (Value: crSizeNESW; Name: 'crSizeNESW'),
+    (Value: crSizeNS; Name: 'crSizeNS'),
+    (Value: crSizeNWSE; Name: 'crSizeNWSE'),
+    (Value: crSizeWE; Name: 'crSizeWE'),
+    (Value: crSizeNW; Name: 'crSizeNW'),
+    (Value: crSizeN; Name: 'crSizeN'),
+    (Value: crSizeNE; Name: 'crSizeNE'),
+    (Value: crSizeW; Name: 'crSizeW'),
+    (Value: crSizeE; Name: 'crSizeE'),
+    (Value: crSizeSW; Name: 'crSizeSW'),
+    (Value: crSizeS; Name: 'crSizeS'),
+    (Value: crSizeSE; Name: 'crSizeSE'),
+    (Value: crUpArrow; Name: 'crUpArrow'),
+    (Value: crHourGlass; Name: 'crHourGlass'),
+    (Value: crDrag; Name: 'crDrag'),
+    (Value: crNoDrop; Name: 'crNoDrop'),
+    (Value: crHSplit; Name: 'crHSplit'),
+    (Value: crVSplit; Name: 'crVSplit'),
+    (Value: crMultiDrag; Name: 'crMultiDrag'),
+    (Value: crSQLWait; Name: 'crSQLWait'),
+    (Value: crNo; Name: 'crNo'),
+    (Value: crAppStart; Name: 'crAppStart'),
+    (Value: crHelp; Name: 'crHelp'),
+    (Value: crHandPoint; Name: 'crHandPoint')
+  );
+
+
+function CursorToIdent(Cursor: Longint; out Ident: string): Boolean;
+begin
+  Result := IntToIdent(Cursor, Ident, Cursors);
+end;
+
+function IdentToCursor(const Ident: string; out Cursor: Longint): Boolean;
+begin
+  Result := IdentToInt(Ident, Cursor, Cursors);
 end;
 
 { TControlCanvas }
@@ -2710,5 +2761,8 @@ begin
   inherited Invalidate;
   Paint;
 end;
+
+initialization
+  RegisterIntegerConsts(TypeInfo(TCursor), TIdentToInt(@IdentToCursor), TIntToIdent(@CursorToIdent));
 
 end.
