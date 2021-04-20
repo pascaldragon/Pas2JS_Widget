@@ -48,19 +48,20 @@ type
 
   TWDataModule = class(TCustomDataModule)
   private
-    FHorizontalOffset: LongInt;
-    FPPI: LongInt;
-    FVerticalOffset: LongInt;
+    FHorizontalOffset: longint;
+    FPPI: longint;
+    FVerticalOffset: longint;
   published
     property OnCreate;
     property OnDestroy;
     property OldCreateOrder;
   published
     /// Fake
-    property HorizontalOffset: LongInt read FHorizontalOffset write FHorizontalOffset;
-    property VerticalOffset: LongInt read FVerticalOffset write FVerticalOffset;   
-    property PPI: LongInt read FPPI write FPPI;
+    property HorizontalOffset: longint read FHorizontalOffset write FHorizontalOffset;
+    property VerticalOffset: longint read FVerticalOffset write FVerticalOffset;
+    property PPI: longint read FPPI write FPPI;
   end;
+
   TWDataModuleClass = class of TWDataModule;
 
   { TWComboBox }
@@ -202,7 +203,7 @@ type
     property CharCase;
     property Color;
     property Enabled;
-    property Font; 
+    property Font;
     property HandleClass;
     property HandleId;
     property Lines;
@@ -249,7 +250,7 @@ type
     property Enabled;
     property Font;
     property HandleClass;
-    property HandleId; 
+    property HandleId;
     property Hint;
     property ModalResult;
     property ParentFont;
@@ -287,7 +288,7 @@ type
     property Checked;
     property Color;
     property Enabled;
-    property Font; 
+    property Font;
     property HandleClass;
     property HandleId;
     property ParentColor;
@@ -358,7 +359,7 @@ type
     property AutoSize;
     property BorderSpacing;
     property Center;
-    property Enabled;   
+    property Enabled;
     property HandleClass;
     property HandleId;
     property ParentShowHint;
@@ -401,7 +402,7 @@ type
     property ClientWidth;
     property Color;
     property Enabled;
-    property Font; 
+    property Font;
     property HandleClass;
     property HandleId;
     property ParentColor;
@@ -436,6 +437,17 @@ type
     property OnStartTimer;
     property OnStopTimer;
   end;
+
+  { TWWebSocketClient }
+  TWWebSocketClient = class(TCustomWebSocketClient)
+  published
+    property Url;
+    property OnClose;
+    property OnError;
+    property OnMessage;
+    property OnOpen;
+  end;
+
 
   { TWPageControl }
 
@@ -488,7 +500,7 @@ type
     property Color;
     property DecimalPlaces;
     property Enabled;
-    property Font;  
+    property Font;
     property HandleClass;
     property HandleId;
     property ParentColor;
@@ -524,8 +536,8 @@ type
 
   TWIntegerEdit = class(TCustomNumericEdit)
   private
-    function GetValue: NativeInt;
-    procedure SetValue(AValue: NativeInt);
+    function GetValue: nativeint;
+    procedure SetValue(AValue: nativeint);
   protected
     procedure RealSetText(const AValue: string); override;
   public
@@ -539,7 +551,7 @@ type
     property BorderStyle;
     property Color;
     property Enabled;
-    property Font;  
+    property Font;
     property HandleClass;
     property HandleId;
     property ParentColor;
@@ -552,7 +564,7 @@ type
     property TabOrder;
     property Text;
     property TextHint;
-    property Value: NativeInt read GetValue write SetValue;
+    property Value: nativeint read GetValue write SetValue;
     property Visible;
     property OnChange;
     property OnClick;
@@ -589,7 +601,7 @@ type
     property BorderStyle;
     property Color;
     property Enabled;
-    property Font;  
+    property Font;
     property HandleClass;
     property HandleId;
     property ParentColor;
@@ -683,7 +695,7 @@ type
     property Color;
     property Enabled;
     property Filter;
-    property Font;   
+    property Font;
     property HandleClass;
     property HandleId;
     //property ModalResult;
@@ -692,7 +704,7 @@ type
     property ShowHint;
     property TabOrder;
     property TabStop;
-    property Visible; 
+    property Visible;
     property OnChange;
     property OnClick;
     property OnEnter;
@@ -756,7 +768,7 @@ type
     property BorderSpacing;
     property CurrentPage;
     property Enabled;
-    property Font;   
+    property Font;
     property HandleClass;
     property HandleId;
     property ParentFont;
@@ -801,12 +813,12 @@ end;
 
 { TWIntegerEdit }
 
-function TWIntegerEdit.GetValue: NativeInt;
+function TWIntegerEdit.GetValue: nativeint;
 begin
   Result := StrToIntDef(RealGetText, 0);
 end;
 
-procedure TWIntegerEdit.SetValue(AValue: NativeInt);
+procedure TWIntegerEdit.SetValue(AValue: nativeint);
 begin
   RealSetText(FloatToStrF(AValue, ffFixed, 20, DecimalPlaces));
 end;
@@ -818,7 +830,7 @@ end;
 
 constructor TWIntegerEdit.Create(AOwner: TComponent);
 begin
-  inherited Create(AOwner);  
+  inherited Create(AOwner);
   BeginUpdate;
   try
     DecimalPlaces := 0;

@@ -146,10 +146,101 @@ type
     property OnStopTimer: TNotifyEvent read FOnStopTimer write FOnStopTimer;
   end;
 
+  { TCustomWebSocketClient }
+
+  TOnMessage = procedure(Sender: TObject; Data: string) of object;
+
+  TCustomWebSocketClient = class(TComponent)
+  private
+    FOnClose: TNotifyEvent;
+    FOnError: TNotifyEvent;
+    FOnMessage: TOnMessage;
+    FOnOpen: TNotifyEvent;
+    FUrl: String;
+    FWebSocket: TJSWebSocket;
+    function DoWebSocketClose(Event: TEventListenerEvent): boolean;
+    function DoWebSocketError(Event: TEventListenerEvent): boolean;
+    function DoWebSocketMessage(Event: TEventListenerEvent): boolean;
+    function DoWebSocketOpen(Event: TEventListenerEvent): boolean;
+  public
+    constructor Create(AOwner: TComponent); override;
+    destructor Destroy; override;
+    procedure Connect;
+    procedure Send(Data: string);
+    procedure Close;
+  public
+    property Url: String read FUrl write FUrl;
+    property OnClose: TNotifyEvent read FOnClose write FOnClose;
+    property OnError: TNotifyEvent read FOnError write FOnError;
+    property OnMessage: TOnMessage read FOnMessage write FOnMessage;
+    property OnOpen: TNotifyEvent read FOnOpen write FOnOpen;
+  end;
+
 implementation
 
 uses
   WCLStrConsts;
+
+{ TCustomWebSocketClient }
+
+function TCustomWebSocketClient.DoWebSocketMessage(Event: TEventListenerEvent
+  ): boolean;
+begin
+  if Assigned(OnMessage) then
+  begin
+    if Event._type <> 'message' then
+      exit;
+    OnMessage(Self, string(TJSMessageEvent(event).Data));
+  end;
+end;
+
+function TCustomWebSocketClient.DoWebSocketClose(Event: TEventListenerEvent): boolean;
+begin
+  if Assigned(OnClose) then
+    OnClose(Self);
+end;
+
+function TCustomWebSocketClient.DoWebSocketError(Event: TEventListenerEvent): boolean;
+begin
+  if Assigned(OnError) then
+    OnError(Self);
+end;
+
+function TCustomWebSocketClient.DoWebSocketOpen(Event: TEventListenerEvent): boolean;
+begin
+  if Assigned(OnOpen) then
+    OnOpen(Self);
+end;
+
+constructor TCustomWebSocketClient.Create(AOwner: TComponent);
+begin
+  inherited Create(AOwner);
+end;
+
+destructor TCustomWebSocketClient.Destroy;
+begin
+  Close;
+  inherited Destroy;
+end;
+
+procedure TCustomWebSocketClient.Connect;
+begin
+  FWebSocket := TJSWebSocket.new(url);
+  FWebSocket.onmessage := @DoWebSocketMessage;
+  FWebSocket.onopen := @DoWebSocketOpen;
+  FWebSocket.onclose := @DoWebSocketClose;
+  FWebSocket.onerror := @DoWebSocketError;
+end;
+
+procedure TCustomWebSocketClient.Send(Data: string);
+begin
+  FWebSocket.send(Data);
+end;
+
+procedure TCustomWebSocketClient.Close;
+begin
+  FWebSocket.close;
+end;
 
 { TCustomTimer }
 

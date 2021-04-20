@@ -44,7 +44,7 @@ MIT:
   SOFTWARE.
 }"/>
     <Version Minor="1" Release="1" Build="1"/>
-    <Files Count="6">
+    <Files Count="7">
       <Item1>
         <Filename Value="../source/btnctrls.pas"/>
         <UnitName Value="BtnCtrls"/>
@@ -71,6 +71,10 @@ MIT:
         <HasRegisterProc Value="True"/>
         <UnitName Value="Pas2JS_IDE_Descriptor"/>
       </Item6>
+      <Item7>
+        <Filename Value="../source/websocket.pas"/>
+        <UnitName Value="websocket"/>
+      </Item7>
     </Files>
     <CompatibilityMode Value="True"/>
     <RequiredPkgs Count="3">
