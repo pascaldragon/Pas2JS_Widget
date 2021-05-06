@@ -31,6 +31,7 @@ uses
   Classes,
   SysUtils,{%H-}
   LResources,
+  LCLType,
   Graphics,
   Controls,
   Forms,
@@ -403,6 +404,56 @@ type
     property OnMouseUp;
     property OnMouseWheel;
     property OnResize;
+  end;
+
+  { TWRadioButton }
+
+  TWRadioButton = class(TCustomCheckBox)
+  protected
+    procedure CreateParams(var Params: TCreateParams); override;
+  published
+    property Align;
+    property Alignment;
+    property Anchors;
+    property AutoSize default True;
+    property BidiMode;
+    property BorderSpacing;
+    property Caption;
+    property Checked;
+    property Color;
+    property Constraints;
+    property DoubleBuffered;
+    property DragCursor;
+    property DragKind;
+    property DragMode;
+    property Enabled;
+    property Font;
+    property Hint;
+    property OnChange;
+    property OnClick;
+    property OnEnter;
+    property OnExit;
+    property OnKeyDown;
+    property OnKeyPress;
+    property OnKeyUp;
+    property OnMouseDown;
+    property OnMouseEnter;
+    property OnMouseLeave;
+    property OnMouseMove;
+    property OnMouseUp;
+    property OnMouseWheel;
+    property OnResize;
+    property OnStartDrag;
+    property ParentBidiMode;
+    property ParentColor;
+    property ParentDoubleBuffered;
+    property ParentFont;
+    property ParentShowHint;
+    property PopupMenu;
+    property ShowHint;
+    property TabOrder;
+    property TabStop default False;
+    property Visible;
   end;
 
   { TWLabel }
@@ -889,7 +940,6 @@ type
     property FixedRows;
     property Options default [];
     property RowCount;
-
     property OnSelection;
   end;
 
@@ -907,6 +957,7 @@ begin
     TWMemo,
     TWButton,
     TWCheckbox,
+    TWRadioButton,
     TWLabel,
     TWImage,
     TWPanel,
@@ -921,6 +972,14 @@ begin
     TWPagination,
     TWStringGrid
     ]);
+end;
+
+{ TWRadioButton }
+
+procedure TWRadioButton.CreateParams(var Params: TCreateParams);
+begin
+  inherited CreateParams(Params);
+  Params.Style := (Params.Style and not BS_3STATE) or BS_RADIOBUTTON;
 end;
 
 { TWStringGrid }

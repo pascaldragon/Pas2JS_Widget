@@ -353,6 +353,20 @@ type
     property State: TCheckBoxState read GetState write SetState default cbUnchecked;
   end;
 
+  { TCustomRadioButton }
+  TCustomRadioButton = class(TWinControl)
+  private
+    fInput: TJSHTMLInputElement;
+    fLabel: TJSHTMLLabelElement;
+    FOnChange: TNotifyEvent;
+    function ChangeHandler(Event: TEventListenerEvent): boolean;
+  protected
+    property OnChange: TNotifyEvent read FOnChange write FOnChange;
+  protected
+    procedure Changed; override;
+    function CreateHandleElement: TJSHTMLElement; override;
+  end;
+
   { TCustomLabel }
 
   TCustomLabel = class(TWinControl)
@@ -436,6 +450,35 @@ begin
       aStyle.setProperty('overflow', 'auto');
     end;
   end;
+end;
+
+{ TCustomRadioButton }
+
+function TCustomRadioButton.ChangeHandler(Event: TEventListenerEvent): boolean;
+begin
+  if Assigned(OnChange) then
+    OnChange(Self);
+end;
+
+procedure TCustomRadioButton.Changed;
+begin
+  inherited Changed;
+  fInput._type := 'radio';
+  fInput.id := Name;
+  fInput.name := Parent.Name;
+  fInput.value := Caption;
+  fLabel.For_ := Name;
+  fLabel.textContent := Caption;
+end;
+
+function TCustomRadioButton.CreateHandleElement: TJSHTMLElement;
+begin
+  Result := TJSHTMLElement(Document.CreateElement('div'));
+  fInput := TJSHTMLInputElement(document.createElement('input'));
+  fLabel := TJSHTMLLabelElement(document.createElement('label'));
+  Result.append(fInput);
+  fInput.onchange := @ChangeHandler;
+  Result.append(fLabel);
 end;
 
 { TCustomComboBox }
