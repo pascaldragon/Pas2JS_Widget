@@ -320,6 +320,7 @@ type
   published
     property AutoSize;
     property Caption;
+    property Checked;
     property TabOrder;
     property OnChange;
     property OnClick;

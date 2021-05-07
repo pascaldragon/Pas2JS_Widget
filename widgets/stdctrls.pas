@@ -360,7 +360,11 @@ type
     fLabel: TJSHTMLLabelElement;
     FOnChange: TNotifyEvent;
     function ChangeHandler(Event: TEventListenerEvent): boolean;
+    function GetChecked: boolean;
+    function LabelClickHandler(aEvent: TJSMouseEvent): boolean;
+    procedure SetChecked(AValue: boolean);
   protected
+    property Checked: boolean read GetChecked write SetChecked;
     property OnChange: TNotifyEvent read FOnChange write FOnChange;
   protected
     procedure Changed; override;
@@ -460,6 +464,23 @@ begin
     OnChange(Self);
 end;
 
+function TCustomRadioButton.GetChecked: boolean;
+begin
+  Result := fInput.checked;
+end;
+
+function TCustomRadioButton.LabelClickHandler(aEvent: TJSMouseEvent): boolean;
+begin
+  Checked := true;
+end;
+
+procedure TCustomRadioButton.SetChecked(AValue: boolean);
+begin
+  fInput.checked := AValue;
+  if Assigned(OnChange) then
+    OnChange(Self);
+end;
+
 procedure TCustomRadioButton.Changed;
 begin
   inherited Changed;
@@ -467,8 +488,10 @@ begin
   fInput.id := Name;
   fInput.name := Parent.Name;
   fInput.value := Caption;
-  fLabel.For_ := Name;
   fLabel.textContent := Caption;
+  { #todo -oyus : After publish this fix to release https://bugs.freepascal.org/view.php?id=38862. Need refactoring }
+  // fLabel.htmlFor := Name;
+  fLabel.onclick := @LabelClickHandler;
 end;
 
 function TCustomRadioButton.CreateHandleElement: TJSHTMLElement;
@@ -477,7 +500,8 @@ begin
   fInput := TJSHTMLInputElement(document.createElement('input'));
   fLabel := TJSHTMLLabelElement(document.createElement('label'));
   Result.append(fInput);
-  fInput.onchange := @ChangeHandler;
+  fInput.onselect := @ChangeHandler;
+  fInput.addEventListener('change', @ChangeHandler);
   Result.append(fLabel);
 end;
 
