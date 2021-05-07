@@ -136,21 +136,28 @@ type
   private
     const
       CControlsSpacing = 2;
-      CMinDialogHeight = 200;
+      CMinDialogHeight = 150;
       CMinDialogWidth = 300;
       CMinButtonHeight = 25;
       CMinButtonWidth = 100;
       CMinImageHeight = 70;
       CMinImageWidth = 70;
+      CTitleHeight = 24;
   private
     FButtons: TMsgDlgButtons;
     FDefaultButton: TMsgDlgBtn;
     FDialogType: TMsgDlgType;
     FMessage: string;
+    fMoveEnable: Boolean;
+    fX: Integer;
+    fY: Integer;
   protected
     FButtonPanel: TWPanel;
     FInfoImage: TWImage;
+    fMessagePanel: TWPanel;
     FMessageText: TWLabel;
+    fTitlePanel: TWPanel;
+    fTitleText: TWLabel;
   protected
     procedure PrepareButtons; virtual;
     procedure PrepareImage; virtual;
@@ -159,6 +166,7 @@ type
     procedure PrepareLayout; virtual;
   protected
     procedure KeyDown(var Key: NativeInt; Shift: TShiftState); override;
+    procedure Show; override;
   public
     constructor Create(AOwner: TComponent); override;
   published
@@ -256,6 +264,7 @@ end;
 procedure TMessageDialog.PrepareTitle;
 begin
   Caption := IfThen((Caption <> ''), Caption, DialogCaption[FDialogType]);
+  fTitleText.Caption := Caption;
 end;
 
 procedure TMessageDialog.PrepareLayout;
@@ -278,6 +287,30 @@ begin
   end;
 end;
 
+procedure TMessageDialog.Show;
+var
+  ownForm: TWForm;
+  curHeight: Integer;
+begin
+  inherited Show;
+  if not (Owner is TWForm) then
+    Exit;
+  ownForm := TWForm(Owner);
+  Self.BeginUpdate;
+  try
+    curHeight := FMessageText.HandleElement.scrollHeight + CMinButtonHeight + CControlsSpacing * 8 + CTitleHeight;
+    if curHeight - CMinImageWidth > ownForm.Height then
+      curHeight := ownForm.Height - CMinImageHeight;
+    if curHeight < CMinDialogHeight then
+      curHeight := CMinDialogHeight;
+    Self.Height := curHeight;
+    fMessagePanel.Height := FMessageText.HandleElement.scrollHeight;
+    Self.Top := Round(ownForm.Height / 2 - Self.Height / 2);
+  finally
+    Self.EndUpdate;
+  end;
+end;
+
 constructor TMessageDialog.Create(AOwner: TComponent);
 begin
   inherited CreateNew(AOwner, 1);
@@ -296,6 +329,31 @@ begin
     finally
       FButtonPanel.EndUpdate;
     end;
+
+    fTitlePanel := TWPanel.Create(Self);
+    fTitlePanel.BeginUpdate;
+    try
+      fTitlePanel.Parent := Self;
+      fTitlePanel.BorderSpacing.Around := CControlsSpacing;
+      fTitlePanel.Height := CTitleHeight;
+      fTitlePanel.BevelOuter := bvNone;
+      fTitlePanel.Align := alTop;
+      fTitlePanel.Color := clSkyBlue;
+    finally
+      fTitlePanel.EndUpdate;
+    end;
+    fTitleText := TWLabel.Create(fTitlePanel);
+    fTitleText.BeginUpdate;
+    try
+      fTitleText.Parent := fTitlePanel;
+      fTitleText.BorderSpacing.Around := CControlsSpacing;
+      fTitleText.Align := alClient;
+      fTitleText.Alignment := taCenter;
+    finally
+      fTitleText.EndUpdate;
+    end;
+
+
     FInfoImage := TWImage.Create(Self);
     FInfoImage.BeginUpdate;
     try
@@ -307,10 +365,20 @@ begin
     finally
       FInfoImage.EndUpdate;
     end;
-    FMessageText := TWLabel.Create(Self);
+    fMessagePanel := TWPanel.Create(Self);
+    fMessagePanel.BeginUpdate;
+    try
+      fMessagePanel.Parent := Self;
+      fMessagePanel.BorderSpacing.Around := CControlsSpacing;
+      fMessagePanel.BevelOuter := bvNone;
+      fMessagePanel.Align := alClient;
+    finally
+      fMessagePanel.EndUpdate;
+    end;
+    FMessageText := TWLabel.Create(fMessagePanel);
     FMessageText.BeginUpdate;
     try
-      FMessageText.Parent := Self;
+      FMessageText.Parent := fMessagePanel;
       FMessageText.BorderSpacing.Around := CControlsSpacing;
       FMessageText.WordWrap := True;
       FMessageText.Align := alClient;
