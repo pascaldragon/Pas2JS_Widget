@@ -471,11 +471,14 @@ end;
 
 function TCustomRadioButton.LabelClickHandler(aEvent: TJSMouseEvent): boolean;
 begin
-  Checked := true;
+  if not Checked then
+    Checked := true;
 end;
 
 procedure TCustomRadioButton.SetChecked(AValue: boolean);
 begin
+  if AValue = fInput.checked then
+    Exit;
   fInput.checked := AValue;
   if Assigned(OnChange) then
     OnChange(Self);
