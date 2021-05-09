@@ -372,7 +372,7 @@ begin
 {$if declared(TPas2JSWidgetsRequirements)}
   RegisterComponentRequirements([TWButton, TWCheckbox, TWComboBox, TWDataGrid, TWDateEditBox,
     TWEdit, TWFileButton, TWFloatEdit, TWImage, TWIntegerEdit, TWLabel, TWMemo, TWPageControl,
-    TWPagination, TWPanel, TWTimeEditBox, TWStringGrid], TPas2JSWidgetsRequirements);
+    TWPagination, TWPanel, TWRadioButton, TWTimeEditBox, TWStringGrid], TPas2JSWidgetsRequirements);
 {$endif}
 
   FormEditingHook.RegisterDesignerBaseClass(TWForm);
