@@ -318,7 +318,7 @@ type
 
   TWRadioButton = class(TCustomRadioButton)
   published
-    property AutoSize;
+    property AutoSize default True;
     property Caption;
     property Checked;
     property TabOrder;
