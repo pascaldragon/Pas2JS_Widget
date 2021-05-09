@@ -487,6 +487,8 @@ end;
 procedure TCustomRadioButton.Changed;
 begin
   inherited Changed;
+  HandleElement.style.setProperty('display','flex' );
+  HandleElement.style.setProperty('align-items', 'center');
   fInput._type := 'radio';
   fInput.id := Name;
   fInput.name := Parent.Name;
