@@ -373,7 +373,7 @@ begin
   RegisterComponentRequirements([TWButton, TWCheckbox, TWComboBox, TWDataGrid, TWDateEditBox,
     TWEdit, TWFileButton, TWFloatEdit, TWImage, TWIntegerEdit, TWLabel, TWMemo, TWPageControl,
     TWPagination, TWPanel, TWRadioButton, TWTimeEditBox, TWStringGrid, TWListBox, TWImage, TWTimer,
-    TWDateEditBox], TPas2JSWidgetsRequirements);
+    TWDateEditBox, TWWebSocketClient], TPas2JSWidgetsRequirements);
 {$endif}
 
   FormEditingHook.RegisterDesignerBaseClass(TWForm);

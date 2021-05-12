@@ -43,7 +43,8 @@ uses
   BtnCtrls,
   DataGrid,
   CustomTimer,
-  Grids;
+  Grids,
+  websocket;
 
 type
 
@@ -591,6 +592,18 @@ type
     property OnStopTimer;
   end;
 
+  { TWWebSocketClient }
+
+  TWWebSocketClient = class(TCustomWebSocketClient)
+  published
+    property Url;
+    property OnBinaryMessage;
+    property OnClose;
+    property OnError;
+    property OnMessage;
+    property OnOpen;
+  end;
+
   { TWPageControl }
 
   TWPageControl = class(TPageControl)
@@ -972,7 +985,8 @@ begin
     TWFileButton,
     TWDataGrid,
     TWPagination,
-    TWStringGrid
+    TWStringGrid,
+    TWWebSocketClient
     ]);
 end;
 
