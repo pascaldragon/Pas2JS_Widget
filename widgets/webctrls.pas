@@ -318,12 +318,37 @@ type
 
   TWRadioButton = class(TCustomRadioButton)
   published
+    property Align;
+    property Anchors;
     property AutoSize default True;
+    property BorderSpacing;
     property Caption;
     property Checked;
-    property TabOrder;
+    property Color;
+    property Enabled;
+    property Font;
+    property Hint;
     property OnChange;
     property OnClick;
+    property OnEnter;
+    property OnExit;
+    property OnKeyDown;
+    property OnKeyPress;
+    property OnKeyUp;
+    property OnMouseDown;
+    property OnMouseEnter;
+    property OnMouseLeave;
+    property OnMouseMove;
+    property OnMouseUp;
+    property OnMouseWheel;
+    property OnResize;
+    property ParentColor;
+    property ParentFont;
+    property ParentShowHint;
+    property ShowHint;
+    property TabOrder;
+    property TabStop default False;
+    property Visible;
   end;
 
   { TWLabel }
