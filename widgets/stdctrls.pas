@@ -493,6 +493,7 @@ begin
   inherited Changed;
   HandleElement.style.setProperty('display','flex' );
   HandleElement.style.setProperty('align-items', 'center');
+  HandleElement.style.setProperty('white-space', 'nowrap');
   if AutoSize then begin
     HandleElement.Style.removeProperty('height');
     HandleElement.Style.removeProperty('width');
@@ -1978,6 +1979,7 @@ begin
   begin
     with HandleElement do
     begin
+      Style.setProperty('white-space', 'nowrap');
       /// Prevent text selection
       Style.SetProperty('user-select', 'none');
       Style.SetProperty('-moz-user-select', 'none');
@@ -2156,6 +2158,7 @@ begin
         tlCenter: Style.SetProperty('vertical-align', 'middle');
         tlTop: Style.SetProperty('vertical-align', 'top');
       end;
+      Style.setProperty('white-space', 'nowrap');
       /// WordWrap
       if (FWordWrap) then
       begin
