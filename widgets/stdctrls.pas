@@ -2158,14 +2158,15 @@ begin
         tlCenter: Style.SetProperty('vertical-align', 'middle');
         tlTop: Style.SetProperty('vertical-align', 'top');
       end;
-      Style.setProperty('white-space', 'nowrap');
       /// WordWrap
       if (FWordWrap) then
       begin
         Style.SetProperty('word-wrap', 'break-word');
+        Style.removeProperty('white-space');
       end
       else
       begin
+        Style.setProperty('white-space', 'nowrap');
         Style.removeProperty('word-wrap');
       end;
       /// Scroll
