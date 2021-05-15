@@ -493,6 +493,11 @@ begin
   inherited Changed;
   HandleElement.style.setProperty('display','flex' );
   HandleElement.style.setProperty('align-items', 'center');
+  HandleElement.style.setProperty('white-space', 'nowrap');
+  if AutoSize then begin
+    HandleElement.Style.removeProperty('height');
+    HandleElement.Style.removeProperty('width');
+  end;
   fInput._type := 'radio';
   fInput.id := Name;
   fInput.name := Parent.Name;
@@ -1974,6 +1979,7 @@ begin
   begin
     with HandleElement do
     begin
+      Style.setProperty('white-space', 'nowrap');
       /// Prevent text selection
       Style.SetProperty('user-select', 'none');
       Style.SetProperty('-moz-user-select', 'none');
@@ -1983,6 +1989,10 @@ begin
       /// Position
       Style.SetProperty('display', 'flex');
       Style.SetProperty('align-items', 'center');
+      if AutoSize then begin
+        Style.removeProperty('height');
+        Style.removeProperty('width');
+      end;
     end;
     /// Mark
     with FMarkElement do
@@ -2143,8 +2153,6 @@ begin
       InnerHTML := '';
       /// Layout
       Style.SetProperty('display', 'table-cell');
-      Style.SetProperty('width', IntToStr(Self.Width) + 'px');
-      Style.SetProperty('height', IntToStr(Self.Height) + 'px');
       case FLayout of
         tlBottom: Style.SetProperty('vertical-align', 'bottom');
         tlCenter: Style.SetProperty('vertical-align', 'middle');
@@ -2154,9 +2162,11 @@ begin
       if (FWordWrap) then
       begin
         Style.SetProperty('word-wrap', 'break-word');
+        Style.removeProperty('white-space');
       end
       else
       begin
+        Style.setProperty('white-space', 'nowrap');
         Style.removeProperty('word-wrap');
       end;
       /// Scroll
