@@ -493,6 +493,10 @@ begin
   inherited Changed;
   HandleElement.style.setProperty('display','flex' );
   HandleElement.style.setProperty('align-items', 'center');
+  if AutoSize then begin
+    HandleElement.Style.removeProperty('height');
+    HandleElement.Style.removeProperty('width');
+  end;
   fInput._type := 'radio';
   fInput.id := Name;
   fInput.name := Parent.Name;
@@ -1983,6 +1987,10 @@ begin
       /// Position
       Style.SetProperty('display', 'flex');
       Style.SetProperty('align-items', 'center');
+      if AutoSize then begin
+        Style.removeProperty('height');
+        Style.removeProperty('width');
+      end;
     end;
     /// Mark
     with FMarkElement do
@@ -2143,8 +2151,6 @@ begin
       InnerHTML := '';
       /// Layout
       Style.SetProperty('display', 'table-cell');
-      Style.SetProperty('width', IntToStr(Self.Width) + 'px');
-      Style.SetProperty('height', IntToStr(Self.Height) + 'px');
       case FLayout of
         tlBottom: Style.SetProperty('vertical-align', 'bottom');
         tlCenter: Style.SetProperty('vertical-align', 'middle');
