@@ -266,10 +266,13 @@ type
     procedure SetTabStop(AValue: boolean);
     procedure SetText(AValue: TCaption);
     procedure SetTop(AValue: NativeInt);
-    procedure SetVisible(AValue: boolean);
     procedure SetWidth(AValue: NativeInt);
   protected
     procedure SetBorderStyle(AValue: TBorderStyle);
+    // useful in derived components
+    procedure SetVisible(AValue: boolean); virtual;
+    function GetHeight: NativeInt; virtual;
+    function GetWidth: NativeInt; virtual;
   protected
     procedure Click; virtual;
     procedure DblClick; virtual;
@@ -369,10 +372,10 @@ type
   published
     property Cursor: TCursor read FCursor write SetCursor;
     property Left: NativeInt read FLeft write SetLeft;
-    property Height: NativeInt read FHeight write SetHeight;
+    property Height: NativeInt read GetHeight write SetHeight;
     property Hint: string read FHint write SetHint;
     property Top: NativeInt read FTop write SetTop;
-    property Width: NativeInt read FWidth write SetWidth;
+    property Width: NativeInt read GetWidth write SetWidth;
   end;
 
   { TWinControl }
@@ -1184,6 +1187,12 @@ begin
   SetBounds(FLeft, FTop, FWidth, AValue);
 end;
 
+function TControl.GetHeight: NativeInt;
+begin
+  Result := FHeight;
+end;
+
+
 procedure TControl.SetHint(AValue: string);
 begin
   if (FHint <> AValue) then
@@ -1320,6 +1329,11 @@ end;
 procedure TControl.SetWidth(AValue: NativeInt);
 begin
   SetBounds(FLeft, FTop, AValue, FHeight);
+end;
+
+function TControl.GetWidth: NativeInt;
+begin
+  Result := FWidth;
 end;
 
 procedure TControl.Click;
@@ -1552,39 +1566,34 @@ begin
     begin
       /// Id
       if (FHandleId <> '') then
-      begin
-        SetAttribute('id', FHandleId);
-      end
+        SetAttribute('id', FHandleId)
       else
-      begin
         RemoveAttribute('id');
-      end;
 
       /// Class
       if (FHandleClass <> '') then
-      begin
-        SetAttribute('class', FHandleClass);
-      end
+        SetAttribute('class', FHandleClass)
       else
-      begin
         RemoveAttribute('class');
-      end;
-                    
+
+      /// Clear font style, it must be set from CSS class or CSS default value
+      UpdateHtmlElementFont(FHandleElement, nil, True);
+      Style.removeProperty('color');
+              
       /// Style
       if (FHandleClass = '') and (FHandleId = '') then
       begin      
-        /// Font
-        Style.SetProperty('color', JSColor(FFont.Color));
-        UpdateHtmlElementFont(FHandleElement, FFont, False);
         /// Color
         if (FColor in [clDefault, clNone]) then
-        begin
-          Style.RemoveProperty('background-color');
-        end
+          Style.RemoveProperty('background-color')
         else
-        begin
           Style.SetProperty('background-color', JSColor(FColor));
-        end;
+      end
+      else begin
+        /// Everything will be set via CSS
+        Style.RemoveProperty('background-color');
+        Style.RemoveProperty('border-style');
+        Style.cssText := '';
       end;
 
       /// Bounds
@@ -1594,7 +1603,10 @@ begin
       Style.SetProperty('height', IntToStr(AdjustWithPPI(FHeight)) + 'px');
 
       /// Cursor
-      Style.SetProperty('cursor', JSCursor(FCursor));
+      if FCursor = crDefault then
+        Style.RemoveProperty('cursor')
+      else
+        Style.SetProperty('cursor', JSCursor(FCursor));
 
       /// Enabled
       if (FEnabled) then
@@ -1602,8 +1614,7 @@ begin
         RemoveAttribute('disabled');    
         Style.RemoveProperty('opacity');
       end
-      else
-      begin
+      else begin
         SetAttribute('disabled', 'true'); 
         Style.SetProperty('opacity','0.5');
       end;
@@ -1614,21 +1625,16 @@ begin
         Style.SetProperty('visibility', 'visible');
         Style.SetProperty('display', 'block');
       end
-      else
-      begin
+      else begin
         Style.SetProperty('visibility', 'hidden');
         Style.SetProperty('display', 'none');
       end;
 
       /// Hint
       if (FHint <> '') and (FShowHint) then
-      begin
-        SetAttribute('title', FHint);
-      end
+        SetAttribute('title', FHint)
       else
-      begin
         RemoveAttribute('title');
-      end;
 
       /// Border Style
       if (FBorderStyle = bsNone) then
@@ -1646,8 +1652,8 @@ begin
       /// Position
       Style.SetProperty('position', 'absolute');
 
-      /// Scroll
-      Style.SetProperty('overflow', 'hidden');
+      /// Scroll must be set via CSS
+      // Style.SetProperty('overflow', 'hidden');
 
       /// Defines how the width and height of an element are calculated
       Style.SetProperty('-webkit-box-sizing', 'border-box');

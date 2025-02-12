@@ -35,7 +35,8 @@ uses
   WebExtra,
   Graphics,
   Controls,
-  Forms;
+  Forms,
+  JS;
 
 type
   TEditCharCase = (ecNormal, ecUppercase, ecLowerCase);
@@ -60,9 +61,12 @@ type
     procedure SetItems(AValue: TStrings);
     procedure SetSorted(AValue: boolean);
   private
+    function GetItemIndex: NativeInt;
     procedure ItemsChange(ASender: TObject);
   protected
     procedure Change; virtual;
+    function GetHeight: NativeInt; override;
+    function GetWidth: NativeInt; override;    
   protected
     property OnChange: TNotifyEvent read FOnChange write FOnChange;
   protected
@@ -86,7 +90,7 @@ type
     procedure Clear; virtual;
     property DropDownCount: integer read FDropDownCount write SetDropDownCount;
     property ItemHeight: NativeInt read FItemHeight write SetItemHeight;
-    property ItemIndex: NativeInt read FItemIndex write SetItemIndex;
+    property ItemIndex: NativeInt read GetItemIndex write SetItemIndex;
     property Items: TStrings read FItems write SetItems;
     property Sorted: boolean read FSorted write SetSorted;
   end;
@@ -183,6 +187,12 @@ type
     procedure Change; virtual;
     procedure DoEnter; override;
     procedure DoInput(ANewValue:string); virtual;
+
+    function GetHeight: NativeInt; override;
+    function GetWidth: NativeInt; override;
+    function GetLeft: NativeInt; override;
+    function GetTop: NativeInt; override;
+    
   protected
     function HandleInput(AEvent: TJSEvent): boolean; virtual;
   protected
@@ -200,6 +210,9 @@ type
     constructor Create(AOwner: TComponent); override;
     procedure Clear;
     procedure SelectAll;
+
+    procedure SetFocus; override;
+    
   public
     property Alignment: TAlignment read FAlignment write SetAlignment;
     property CharCase: TEditCharCase read FCharCase write SetCharCase;
@@ -332,6 +345,8 @@ type
     procedure SetState(AValue: TCheckBoxState);
   protected
     procedure DoOnChange; virtual;
+    function GetHeight: NativeInt; override;  {$WARNING Modified by LB}
+    function GetWidth: NativeInt; override;
   protected
     property MarkElement: TJSHTMLInputElement read FMarkElement;
     property LabelElement: TJSHTMLElement read FLabelElement;
@@ -391,6 +406,11 @@ type
     procedure SetWordWrap(AValue: boolean);
   protected
     procedure DoEnter; override;
+    
+    function GetHeight: NativeInt; override; {$WARNING Modified by LB}
+    function GetWidth: NativeInt; override;
+    function GetLeft: NativeInt; override;
+    function GetTop: NativeInt; override;
   protected
     property ContentElement: TJSHTMLTableElement read FContentElement;
     property Alignment: TAlignment read FAlignment write SetAlignment;
@@ -418,8 +438,7 @@ implementation
 uses
   RTLConsts;
 
-procedure ApplyScrollStyleToStyle(aStyle: TJSCSSStyleDeclaration;
-  aScrollStyle: TScrollStyle);
+procedure ApplyScrollStyleToStyle(aStyle: TJSCSSStyleDeclaration; aScrollStyle: TScrollStyle);
 begin
   case aScrollStyle of
     ssNone: begin
@@ -564,6 +583,18 @@ begin
   end;
 end;
 
+function TCustomComboBox.GetItemIndex: Nativeint;
+begin
+  if not hasValue(FItemIndex) then
+  begin
+    if hasValue(FSelectElement) then
+      Self.ItemIndex := TJSHTMLSelectElement(FSelectElement).selectedIndex;
+  end;
+
+  Result := FItemIndex;
+end;
+
+
 procedure TCustomComboBox.ItemsChange(ASender: TObject);
 begin
   Changed;
@@ -576,6 +607,28 @@ begin
     FOnChange(Self);
   end;
 end;
+
+function TCustomComboBox.GetHeight: NativeInt;
+begin
+  Result := 0;
+  if hasValue(FSelectElement) then
+    Result := Round(FSelectElement.offsetHeight);
+
+  if Result = 0 then
+    Result := inherited GetHeight;
+end;
+
+function TCustomComboBox.GetWidth: NativeInt;
+begin
+  Result := 0;
+  if hasValue(FSelectElement) then
+    Result := Round(FSelectElement.offsetWidth);
+
+  if Result = 0 then
+    Result := inherited GetWidth;
+end;
+
+
 
 function TCustomComboBox.HandleChange(AEvent: TJSEvent): boolean;
 begin
@@ -657,7 +710,7 @@ end;
 
 function TCustomComboBox.RealGetText: string;
 begin
-  Result := FItems[FItemIndex];
+  Result := FItems[Self.ItemIndex];
 end;
 
 procedure TCustomComboBox.RealSetText(const AValue: string);
@@ -1209,6 +1262,48 @@ begin
   end;
 end;
 
+function TCustomEdit.GetHeight: NativeInt;
+begin
+  Result := 0;
+
+  if hasValue(FInputElement) then
+    Result := Round(FInputElement.offsetHeight);
+
+  if Result = 0 then
+    Result := inherited GetHeight;
+end;
+
+function TCustomEdit.GetWidth: NativeInt;
+begin
+  Result := 0;
+
+  if hasValue(FInputElement) then
+    Result := Round(FInputElement.offsetWidth);
+
+  if Result = 0 then
+    Result := inherited GetWidth;
+end;
+
+function TCustomEdit.GetLeft: NativeInt;
+begin
+  if hasValue(FInputElement) then
+    Result := Round(FInputElement.offsetLeft);
+
+  if Result = 0 then
+    Result := inherited GetLeft;
+end;
+
+function TCustomEdit.GetTop: NativeInt;
+begin
+  if hasValue(FInputElement) then
+    Result := Round(FInputElement.offsetTop);
+
+  if Result = 0 then
+    Result := inherited GetTop;
+end;
+
+
+
 function TCustomEdit.HandleInput(AEvent: TJSEvent): boolean;
 begin
   AEvent.StopPropagation;
@@ -1317,12 +1412,20 @@ end;
 
 function TCustomEdit.RealGetText: string;
 begin
-  Result := FText;
+  Result := '';
+  if hasValue(FText) then
+    Result := FText
+  else if hasValue(FInputElement) then
+    Result := FInputElement.value;
 end;
 
 procedure TCustomEdit.RealSetText(const AValue: string);
 begin
   FText := AValue;
+  
+  if hasValue(FInputElement) then
+    FInputElement.value := AValue;
+
   FModified := False;
   Changed;
 end;
@@ -1378,6 +1481,15 @@ begin
     end;
   end;
 end;
+
+procedure TCustomEdit.SetFocus;
+begin
+  inherited SetFocus;
+  if hasValue(FInputElement) then
+    FInputElement.focus;
+end;
+
+
 
 type
   TCustomMemoStrings = class(TStringList)
@@ -1650,7 +1762,7 @@ begin
   inherited Changed;
   if (not IsUpdating) and not (csLoading in ComponentState) then
   begin
-    with TJSHTMLTextAreaElement(HandleElement) do
+    with TJSHTMLTextAreaElement(FTextAreaElement) do
     begin
       /// Alignment
       case Alignment of
@@ -1699,8 +1811,10 @@ begin
       end;
       /// Scroll
       Style.SetProperty('overflow', 'auto');
+      
       /// Text
-      Value := RealGetText;
+      if not hasValue(HandleElement) then
+        Value := RealGetText;
     end;
   end;
 end;
@@ -1740,12 +1854,17 @@ end;
 
 function TCustomMemo.RealGetText: string;
 begin
-  Result := FLines.Text;
+  if hasValue(Self.HandleElement) then
+    Result := FTextAreaElement.value
+  else
+    Result := FLines.Text;
 end;
 
 procedure TCustomMemo.RealSetText(const AValue: string);
 begin
   FLines.Text := AValue;
+  if hasValue(HandleElement) then
+    FTextAreaElement.value := AValue;
   FModified := False;
   Changed;
 end;
@@ -1961,6 +2080,41 @@ begin
   end;
 end;
 
+function TCustomCheckbox.GetHeight: NativeInt;
+var
+  _Height : Integer = 0;
+
+begin
+  Result := 0;
+
+  if hasValue(FLabelElement) then
+    Result := Round(FLabelElement.offsetHeight);
+
+  if hasValue(FMarkElement) then
+    _Height := Round(FMarkElement.offsetHeight);
+
+  if _Height > Result then
+    Result := _Height;
+
+  _Height := inherited GetHeight;
+
+  if _Height > Result then
+    Result := _Height;
+end;
+
+function TCustomCheckbox.GetWidth: NativeInt;
+begin
+  Result := 0;
+
+  if hasValue(FLabelElement) then
+    Result := Round(FLabelElement.offsetLeft) + Round(FLabelElement.offsetWidth);
+
+  if Result = 0 then
+    Result := inherited GetWidth;
+end;
+
+
+
 function TCustomCheckbox.HandleClick(AEvent: TJSMouseEvent): boolean;
 begin
   SetChecked(FState <> cbChecked);
@@ -2105,6 +2259,52 @@ begin
     FFocusControl.SetFocus;
   end;
 end;
+
+function TCustomLabel.GetHeight: NativeInt;
+begin
+  Result := 0;
+
+  if hasValue(FContentElement) then
+    Result := Round(FContentElement.offsetHeight);
+
+  if Result = 0 then
+    Result := inherited GetHeight;
+end;
+
+function TCustomLabel.GetWidth: NativeInt;
+begin
+  Result := 0;
+
+  if hasValue(FContentElement) then
+    Result := Round(FContentElement.offsetWidth);
+
+  if Result = 0 then
+    Result := inherited GetWidth;
+end;
+
+function TCustomLabel.GetLeft: NativeInt;
+begin
+  Result := 0;
+
+  if hasValue(FContentElement) then
+    Result := Round(FContentElement.offsetLeft);
+
+  if Result = 0 then
+    Result := inherited GetLeft;
+end;
+
+function TCustomLabel.GetTop: NativeInt;
+begin
+  Result := 0;
+
+  if hasValue(FContentElement) then
+    Result := Round(FContentElement.offsetTop);
+
+  if Result = 0 then
+    Result := inherited GetTop;
+end;
+
+
 
 procedure TCustomLabel.Changed;
 begin
