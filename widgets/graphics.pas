@@ -328,6 +328,7 @@ begin
     cl3DLight: Result := 'ThreeDHighlight';
     clInfoText: Result := 'InfoText';
     clInfoBk: Result := 'InfoBackground';
+    clNone: Result := 'Transparent';
     else
     begin
       R := (AColor) and $FF;
@@ -389,7 +390,7 @@ end;
 { TFont }
 
 function TFont.GetHeight: NativeInt;
-begin                            
+begin
   /// https://stackoverflow.com/questions/139655/convert-pixels-to-points
   Result := Round((- FSize * 72) / 96);
 end;
@@ -456,7 +457,7 @@ end;
 constructor TFont.Create;
 begin
   inherited Create;
-  FColor := clBlack;
+  FColor := clDefault;
   FName := ffSans;
   FSize := 10;
   FStyle := [];

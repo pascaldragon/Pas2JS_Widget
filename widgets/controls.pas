@@ -1569,22 +1569,23 @@ begin
       begin
         RemoveAttribute('class');
       end;
-                    
+
+      /// Font color
+      if FFont.Color = clDefault then
+        Style.RemoveProperty('color')
+      else
+        Style.SetProperty('color', JSColor(FFont.Color));
+
+      /// Background color
+      if FColor = clDefault then
+        Style.RemoveProperty('background-color')
+      else
+        Style.SetProperty('background-color', JSColor(FColor));
+
       /// Style
       if (FHandleClass = '') and (FHandleId = '') then
-      begin      
-        /// Font
-        Style.SetProperty('color', JSColor(FFont.Color));
+      begin
         UpdateHtmlElementFont(FHandleElement, FFont, False);
-        /// Color
-        if (FColor in [clDefault, clNone]) then
-        begin
-          Style.RemoveProperty('background-color');
-        end
-        else
-        begin
-          Style.SetProperty('background-color', JSColor(FColor));
-        end;
       end;
 
       /// Bounds

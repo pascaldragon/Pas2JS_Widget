@@ -748,7 +748,6 @@ begin
   BorderStyle := bsSizeable;
   BeginUpdate;
   try
-    Color := clWhite;
     ParentFont := False;
     ParentShowHint := False;
     Visible := False;
