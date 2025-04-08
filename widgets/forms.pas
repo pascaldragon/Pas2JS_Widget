@@ -566,7 +566,7 @@ begin
   if AValue in [Low(TBorderStyle)..High(TBorderStyle)] then
     bs := AValue
   else
-    bs := bsNone;
+    bs := bsSingle;
 
   inherited SetBorderStyle(bs);
 end;
