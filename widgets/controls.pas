@@ -341,6 +341,7 @@ type
     procedure ReAlign; virtual; /// Realign all children
     procedure BringToFront; virtual;
     procedure SendToBack; virtual;
+    procedure Repaint; virtual;
     procedure SetBounds(ALeft, ATop, AWidth, AHeight: NativeInt); virtual;
   public
     property Align: TAlign read FAlign write SetAlign;
@@ -355,7 +356,7 @@ type
     property Color: TColor read FColor write SetColor;
     property Enabled: boolean read FEnabled write SetEnabled;
     property Font: TFont read FFont write SetFont;
-    property HandleElement: TJSHTMLElement read FHandleElement;  
+    property HandleElement: TJSHTMLElement read FHandleElement;
     property HandleClass: string read FHandleClass write SetHandleClass;
     property HandleId: string read FHandleId write SetHandleId;
     property Parent: TWinControl read FParent write SetParent;
@@ -404,6 +405,8 @@ type
     procedure UnRegisterHandleEvents; override;
     function CheckChildClassAllowed(AChildClass: TClass): boolean; override;
     function FindFocusControl(const AStartControl: TWinControl; ADirection: TFocusSearchDirection): TWinControl; virtual;
+  public
+    procedure Repaint; override;
   public
     function Focused: boolean; virtual;
     function CanSetFocus: boolean; virtual;
@@ -578,7 +581,7 @@ begin
     Style.SetProperty('position', 'absolute');
     Style.SetProperty('top', '-9999');
     Style.SetProperty('overflow', 'scroll');
-    Style.SetProperty('-ms-overflow-style', 'scrollbar');  
+    Style.SetProperty('-ms-overflow-style', 'scrollbar');
   end;
   Document.Body.AppendChild(VDiv);
   Result := Round(VDiv.OffsetWidth - VDiv.ClientWidth);
@@ -1223,6 +1226,7 @@ begin
       begin
         FShowHint := FParent.ShowHint;
       end;
+      Repaint;
     finally
       EndUpdate;
     end;
@@ -1522,7 +1526,7 @@ procedure TControl.Changed;
 var
   form: TCustomForm;
 
-  function AdjustWithPPI(aValue: Integer): Integer;
+  function AdjustWithPPI(aValue: Integer): Integer; overload;
   begin
     if Assigned(form) then
       Result := Trunc(96 * aValue / form.DesignTimePPI)
@@ -1569,10 +1573,10 @@ begin
       begin
         RemoveAttribute('class');
       end;
-                    
+
       /// Style
       if (FHandleClass = '') and (FHandleId = '') then
-      begin      
+      begin
         /// Font
         Style.SetProperty('color', JSColor(FFont.Color));
         UpdateHtmlElementFont(FHandleElement, FFont, False);
@@ -1588,10 +1592,40 @@ begin
       end;
 
       /// Bounds
-      Style.SetProperty('left', IntToStr(AdjustWithPPI(FLeft)) + 'px');
-      Style.SetProperty('top', IntToStr(AdjustWithPPI(FTop)) + 'px');
-      Style.SetProperty('width', IntToStr(AdjustWithPPI(FWidth)) + 'px');
-      Style.SetProperty('height', IntToStr(AdjustWithPPI(FHeight)) + 'px');
+      if (form <> nil) and form.ScalingDesign and (Parent <> nil) then
+      begin
+        if Parent = form then
+        begin
+          Style.SetProperty('left', FloatToStr(FLeft / Parent.Width / form.HorizontalScale * 100) + '%');
+          Style.SetProperty('top', FloatToStr(FTop / Parent.Height / form.VerticalScale * 100) + '%');
+          Style.SetProperty('width', FloatToStr(FWidth / Parent.Width / form.HorizontalScale * 100) + '%');
+          Style.SetProperty('height', FloatToStr(FHeight / Parent.Height / form.VerticalScale * 100) + '%');
+        end
+        else
+        begin
+          Style.SetProperty('left', FloatToStr(FLeft / Parent.Width * 100) + '%');
+          Style.SetProperty('top', FloatToStr(FTop / Parent.Height * 100) + '%');
+          Style.SetProperty('width', FloatToStr(FWidth / Parent.Width * 100) + '%');
+          Style.SetProperty('height', FloatToStr(FHeight / Parent.Height * 100) + '%');
+        end;
+      end
+      else
+      begin
+        Style.SetProperty('left', IntToStr(AdjustWithPPI(FLeft)) + 'px');
+        Style.SetProperty('top', IntToStr(AdjustWithPPI(FTop)) + 'px');
+        Style.SetProperty('width', IntToStr(AdjustWithPPI(FWidth)) + 'px');
+        Style.SetProperty('height', IntToStr(AdjustWithPPI(FHeight)) + 'px');
+
+        /// for scaling design, make sure the form will not be scaled below
+        /// original width / height. This ensures the form will remain
+        /// readable. This also effectively means the form can only scale up,
+        /// never down.
+        if (self is TCustomForm) and TCustomForm(self).ScalingDesign then
+        begin
+          Style.SetProperty('min-width', IntToStr(Trunc(AdjustWithPPI(FWidth) * TCustomForm(self).HorizontalScale)) + 'px');
+          Style.SetProperty('min-height', IntToStr(Trunc(AdjustWithPPI(FHeight) * TCustomForm(self).VerticalScale)) + 'px');
+        end;
+      end;
 
       /// Cursor
       Style.SetProperty('cursor', JSCursor(FCursor));
@@ -1599,12 +1633,12 @@ begin
       /// Enabled
       if (FEnabled) then
       begin
-        RemoveAttribute('disabled');    
+        RemoveAttribute('disabled');
         Style.RemoveProperty('opacity');
       end
       else
       begin
-        SetAttribute('disabled', 'true'); 
+        SetAttribute('disabled', 'true');
         Style.SetProperty('opacity','0.5');
       end;
 
@@ -2249,6 +2283,12 @@ begin
   end;
 end;
 
+procedure TControl.Repaint;
+begin
+  { draws the control in JS }
+  Changed;
+end;
+
 procedure TControl.SetBounds(ALeft, ATop, AWidth, AHeight: NativeInt);
 begin
   { TODO: Constraint max min width and height }
@@ -2274,6 +2314,7 @@ begin
     end;
     Changed;
     ReAlign;
+    DoResize;
   end;
 end;
 
@@ -2551,8 +2592,8 @@ begin
   begin
     Exit;
   end;
-  try   
-    VTabOrder := VArray.IndexOf(AStartControl);  
+  try
+    VTabOrder := VArray.IndexOf(AStartControl);
     if (VTabOrder < 0) then
     begin
       if (ADirection in [fsdFirst]) then
@@ -2568,7 +2609,7 @@ begin
     case ADirection of
       fsdFirst:
       begin
-        VControl := TControl(VArray[0]);   
+        VControl := TControl(VArray[0]);
         if (Assigned(VControl)) and (VControl is TWinControl) and
            (VControl.Enabled) and (VControl.Visible) and (VControl.TabStop) then
         begin
@@ -2587,7 +2628,7 @@ begin
       fsdNext:
       begin
         if (VTabOrder < (VArray.Length-1)) then
-        begin    
+        begin
           for VIndex := (VTabOrder+1) to (VArray.Length - 1) do
           begin
             VControl := TControl(VArray[VIndex]);
@@ -2617,6 +2658,17 @@ begin
    end
   finally
     VArray.Length := 0;
+  end;
+end;
+
+procedure TWinControl.Repaint;
+var
+  I: NativeInt;
+begin
+  inherited Repaint;
+  for I := 0 to ControlCount - 1 do
+  begin
+    GetControl(I).Repaint;
   end;
 end;
 
@@ -2761,3 +2813,4 @@ end;
 initialization
   RegisterIntegerConsts(TypeInfo(TCursor), @IdentToCursor, @CursorToIdent);
 end.
+

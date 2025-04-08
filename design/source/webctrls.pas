@@ -54,6 +54,7 @@ type
   private
     FHandleClass: string;
     FHandleId: string;
+    FScalingDesign: Boolean;
   published
     property ActiveControl;
     property Align;
@@ -66,7 +67,7 @@ type
     property DesignTimePPI;
     property Enabled;
     property Font;
-    ///property FormType;  
+    ///property FormType;
     property HandleClass: string read FHandleClass write FHandleClass;
     property HandleId: string read FHandleId write FHandleId;
     property KeyPreview;
@@ -93,6 +94,7 @@ type
     property OnResize;
     ///property OnScroll;
     property OnShow;
+    property ScalingDesign: Boolean read FScalingDesign write FScalingDesign default False;
   end;
   TWFormClass = class of TWForm;
 
@@ -133,7 +135,7 @@ type
   { TWDataModule }
 
   TWDataModule = class(TDataModule)
-  end;   
+  end;
   TWDataModuleClass = class of TWDataModule;
 
   { TWComboBox }
@@ -1095,3 +1097,4 @@ begin
 end;
 
 end.
+
